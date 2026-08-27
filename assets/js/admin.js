@@ -932,6 +932,9 @@ async function confirmBooking() {
     const id =
         selectedBookingId ||
         window.selectedBookingId;
+    console.log("CONFIRM DEBUG - id:", id);
+    console.log("CONFIRM DEBUG - status:", selectedBookingStatus);
+    console.log("CONFIRM DEBUG - starting Firestore update");
 
 
     if (!id) {
@@ -965,6 +968,8 @@ async function confirmBooking() {
                 status: "Confirmed"
 
             });
+
+        console.log("CONFIRM DEBUG - Firestore update completed");    
 
 
         alert(
