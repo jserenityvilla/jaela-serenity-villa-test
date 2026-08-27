@@ -1199,37 +1199,71 @@ function attachSearch() {
 // Modal Buttons
 // ======================================================
 
+// ======================================================
+// Modal Buttons
+// ======================================================
+
 function attachModalButtons() {
 
-    const confirmButton =
-        document.getElementById(
-            "confirmBookingBtn"
-        );
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            const target =
+                event.target.closest(
+                    "#confirmBookingBtn, #deleteBookingBtn"
+                );
 
 
-    const cancelButton =
-        document.getElementById(
-            "deleteBookingBtn"
-        );
+            if (!target) {
+
+                return;
+
+            }
 
 
-    if (confirmButton) {
+            // ==================================================
+            // CONFIRM BOOKING
+            // ==================================================
 
-        confirmButton.addEventListener(
-            "click",
-            confirmBooking
-        );
+            if (
+                target.id ===
+                "confirmBookingBtn"
+            ) {
 
-    }
+                console.log(
+                    "ADMIN DEBUG - Confirm Booking button clicked."
+                );
 
 
-    if (cancelButton) {
+                confirmBooking();
 
-        cancelButton.addEventListener(
-            "click",
-            deleteBooking
-        );
+                return;
 
-    }
+            }
+
+
+            // ==================================================
+            // CANCEL BOOKING
+            // ==================================================
+
+            if (
+                target.id ===
+                "deleteBookingBtn"
+            ) {
+
+                console.log(
+                    "ADMIN DEBUG - Cancel Booking button clicked."
+                );
+
+
+                deleteBooking();
+
+                return;
+
+            }
+
+        }
+    );
 
 }
