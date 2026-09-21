@@ -36,12 +36,51 @@ const CONFIG = {
     },
 
     // =====================================
+    // Promotions
+    // =====================================
+
+    promotions: {
+
+        WELCOME10: {
+
+            code: "WELCOME10",
+
+            discountPercentage: 10,
+
+            appliesTo: "accommodation",
+
+            expiry: "2026-12-31"
+
+        }
+
+    },
+
+    // =====================================
+    // Payment
+    // =====================================
+
+    payment: {
+
+        depositPercentage: 30,
+
+        balanceDueHoursBeforeCheckin: 168,
+
+	    balanceGracePeriodHours: 48,
+
+        cancellationFeePercentage: 30
+
+    },
+
+    // =====================================
     // Firestore
     // =====================================
 
     firestore: {
 
-        bookingsCollection: "bookings"
+        bookingsCollection: "bookings",
+        categoriesCollection: "categories",
+        expensesCollection: "expenses",
+        utilityBillsCollection: "utilityBills"
 
     },
 
