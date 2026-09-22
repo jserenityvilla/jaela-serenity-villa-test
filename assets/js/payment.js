@@ -46,6 +46,9 @@ const payDepositBtn =
 let currentPaymentType =
     null;
 
+let currentBooking =
+    null;
+
 
 // ======================================================
 // Load booking
@@ -99,6 +102,9 @@ async function loadBooking() {
 
         const booking =
             bookingDoc.data();
+
+        currentBooking =
+            booking;
 
 
         const total =
@@ -181,11 +187,11 @@ async function loadBooking() {
 
 
         // ==================================================
-        // Booking must be confirmed
+        // CANCELLED BOOKING
         // ==================================================
 
         if (
-            booking.status !== "Confirmed"
+            booking.status === "Cancelled"
         ) {
 
             currentPaymentType =
@@ -193,8 +199,8 @@ async function loadBooking() {
 
             paymentMessage.innerHTML = `
                 <p>
-                    Your booking has not yet been confirmed.
-                    Please wait for the confirmation email.
+                    This booking has been cancelled.
+                    No further payment can be made.
                 </p>
             `;
 
@@ -202,7 +208,7 @@ async function loadBooking() {
                 true;
 
             payDepositBtn.textContent =
-                "Awaiting Booking Confirmation";
+                "Booking Cancelled";
 
             return;
         }
@@ -438,6 +444,7 @@ async function startPayment() {
             );
 
 
+
         const result =
             await response.json();
 
@@ -524,10 +531,82 @@ if (payDepositBtn) {
     );
 
 }
+// ======================================================
+// Stripe payment return status
+// ======================================================
+
+async function handlePaymentReturn() {
+
+    await loadBooking();
+
+    const paymentResult =
+        params.get("payment");
+
+    if (paymentResult === "success") {
+
+        if (currentBooking && currentBooking.paymentStatus === "Paid") {
+
+    paymentMessage.innerHTML = `
+        <p>
+            <strong>Payment completed successfully!</strong>
+        </p>
+
+        <p>
+            Your booking is fully paid and confirmed.
+            We look forward to welcoming you to
+            Ja-Ela Serenity Villa.
+        </p>
+    `;
+
+} else if (currentBooking && currentBooking.paymentStatus === "Deposit Paid") {
+
+    paymentMessage.innerHTML = `
+        <p>
+            <strong>Deposit received successfully!</strong>
+        </p>
+
+        <p>
+            Your booking has been confirmed.
+            The remaining balance is still due.
+        </p>
+    `;
+
+} else {
+
+    paymentMessage.innerHTML = `
+        <p>
+            <strong>Payment submitted successfully.</strong>
+        </p>
+
+        <p>
+            We are confirming your payment. Your booking
+            status will be updated once Stripe confirms
+            the payment.
+        </p>
+    `;
+
+}
+
+    } else if (paymentResult === "cancelled") {
+
+        paymentMessage.innerHTML = `
+            <p>
+                <strong>Payment was cancelled.</strong>
+            </p>
+
+            <p>
+                No payment was completed. You can try again
+                when you are ready.
+            </p>
+        `;
+
+    }
+
+}
 
 
 // ======================================================
 // Initial load
 // ======================================================
 
-loadBooking();
+handlePaymentReturn();
