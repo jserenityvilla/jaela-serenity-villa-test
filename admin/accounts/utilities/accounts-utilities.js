@@ -1,12 +1,7 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
     const db = window.db || firebase.firestore();
-
-    if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
-        db.useEmulator("127.0.0.1", 8080);
-    }
-
-    const tableBody =
+const tableBody =
         document.getElementById("utilityTableBody");
 
     const utilityModal =
@@ -1446,5 +1441,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 });
+
 
 

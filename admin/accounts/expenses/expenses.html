@@ -326,35 +326,39 @@
 
         }
 
-    </style>
+            .accounts-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
 
+        .accounts-nav a {
+            display: inline-block;
+            padding: 9px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            background: #e8efef;
+            color: #203030;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .accounts-nav a.active,
+        .accounts-nav a:hover {
+            background: #147f86;
+            color: #fff;
+        }
+</style>
+
+    <link rel="stylesheet" href="../../../assets/css/admin-navigation.css">
 </head>
 
 <body data-admin-login-path="../../login.html">
 
 <header>
 
-    <nav class="navbar">
-
-        <a href="../../../index.html" class="logo">
-
-            <img
-                src="../../../assets/images/logo.png"
-                alt="Ja-Ela Serenity Villa">
-
-            <span>Ja-Ela Serenity Villa</span>
-
-        </a>
-
-        <div class="nav-links">
-
-            <a href="../../../index.html">🏠 Home</a>
-
-            <a href="../categories.html">📂 Categories</a>
-
-        </div>
-
-    </nav>
+                
 
 </header>
 
@@ -372,6 +376,15 @@
             </p>
 
         </div>
+
+<nav class="accounts-nav">
+            <a href="/admin/index.html">Admin Portal</a>
+            <a href="/admin/accounts/bookings.html">Bookings</a>
+            <a href="/admin/accounts/payments.html">Payments</a>
+            <a href="/admin/accounts/expenses/expenses.html" class="active">Expenses</a>
+            <a href="/admin/accounts/categories.html">Categories</a>
+            <a href="/admin/accounts/utilities/utilities.html">Utilities</a>
+        </nav>
 
         <section class="expense-card">
 
@@ -841,8 +854,14 @@
 <script src="../../../assets/js/admin-auth-guard.js"></script>
 <script src="accounts-expenses.js"></script>
 
+    <script src="../../../assets/js/admin-navigation.js"></script>
 </body>
 
 </html>
+
+
+
+
+
 
 
