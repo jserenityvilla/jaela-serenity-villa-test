@@ -755,3 +755,580 @@
 
 
 
+
+    // ============================================
+    // Admin Add Booking - UI Controls
+    // ============================================
+
+    const addBookingBtn = document.getElementById("addBookingBtn");
+    const addBookingPanel = document.getElementById("addBookingPanel");
+    const cancelAddBookingBtn = document.getElementById("cancelAddBookingBtn");
+
+    if (addBookingBtn && addBookingPanel) {
+        addBookingBtn.addEventListener("click", () => {
+            addBookingPanel.style.display = "block";
+            addBookingPanel.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        });
+    }
+
+    if (cancelAddBookingBtn && addBookingPanel) {
+        cancelAddBookingBtn.addEventListener("click", () => {
+            addBookingPanel.style.display = "none";
+        });
+    }
+
+    // ============================================
+    // Admin Add Booking - Pricing Calculation
+    // ============================================
+
+    function calculateAdminBookingPricing() {
+        const accommodation = parseFloat(document.getElementById("addAccommodation")?.value) || 0;
+        const extraGuestFee = parseFloat(document.getElementById("addExtraGuestFee")?.value) || 0;
+        const cleaningFee = parseFloat(document.getElementById("addCleaningFee")?.value) || 0;
+
+        const total = accommodation + extraGuestFee + cleaningFee;
+        const depositPercentage = 30;
+        const deposit = total * (depositPercentage / 100);
+        const balance = total - deposit;
+
+        const totalElement = document.getElementById("addTotal");
+        const depositElement = document.getElementById("addDepositAmount");
+        const balanceElement = document.getElementById("addBalanceAmount");
+
+        if (totalElement) {
+            totalElement.textContent = `AUD $${total.toFixed(2)}`;
+        }
+
+        if (depositElement) {
+            depositElement.textContent = `AUD $${deposit.toFixed(2)}`;
+        }
+
+        if (balanceElement) {
+            balanceElement.textContent = `AUD $${balance.toFixed(2)}`;
+        }
+    }
+
+    ["addAccommodation", "addExtraGuestFee", "addCleaningFee"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("input", calculateAdminBookingPricing);
+        }
+    });
+
+    calculateAdminBookingPricing();
+
+    // ============================================
+    // Admin Add Booking - Nights Calculation
+    // ============================================
+
+    function calculateAdminBookingNights() {
+        const checkin = document.getElementById("addCheckin")?.value;
+        const checkout = document.getElementById("addCheckout")?.value;
+        const nightsElement = document.getElementById("addNights");
+
+        if (!nightsElement) {
+            return 0;
+        }
+
+        if (!checkin || !checkout) {
+            nightsElement.textContent = "0";
+            return 0;
+        }
+
+        const [checkinYear, checkinMonth, checkinDay] = checkin.split("-").map(Number);
+        const [checkoutYear, checkoutMonth, checkoutDay] = checkout.split("-").map(Number);
+
+        const checkinDate = Date.UTC(checkinYear, checkinMonth - 1, checkinDay);
+        const checkoutDate = Date.UTC(checkoutYear, checkoutMonth - 1, checkoutDay);
+
+        const difference = checkoutDate - checkinDate;
+        const nights = difference / (1000 * 60 * 60 * 24);
+
+        if (nights <= 0) {
+            nightsElement.textContent = "0";
+            return 0;
+        }
+
+        nightsElement.textContent = String(nights);
+        return nights;
+    }
+
+    ["addCheckin", "addCheckout"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("change", calculateAdminBookingNights);
+        }
+    });
+
+    calculateAdminBookingNights();
+
+    // ============================================
+    // Admin Add Booking - Default Accommodation
+    // ============================================
+
+    function calculateAdminAccommodation() {
+        const nights = calculateAdminBookingNights();
+        const accommodationElement = document.getElementById("addAccommodation");
+
+        if (!accommodationElement || nights <= 0) {
+            return;
+        }
+
+        const nightlyRate = Number(CONFIG?.pricing?.nightlyRate) || 0;
+
+        accommodationElement.value = (nights * nightlyRate).toFixed(2);
+
+        if (typeof calculateAdminBookingPricing === "function") {
+            calculateAdminBookingPricing();
+        }
+    }
+
+    ["addCheckin", "addCheckout"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("change", calculateAdminAccommodation);
+        }
+    });
+
+    // ============================================
+    // Admin Add Booking - Extra Guest Fee
+    // ============================================
+
+    function calculateAdminExtraGuestFee() {
+        const adults = Number(document.getElementById("addAdults")?.value) || 0;
+        const children = Number(document.getElementById("addChildren")?.value) || 0;
+        const nights = calculateAdminBookingNights();
+        const extraGuestElement = document.getElementById("addExtraGuestFee");
+
+        if (!extraGuestElement) {
+            return;
+        }
+
+        const totalGuests = adults + children;
+        const baseOccupancy = 7;
+        const extraGuestRate = Number(CONFIG?.pricing?.extraGuestRate) || 0;
+
+        const extraGuests = Math.max(0, totalGuests - baseOccupancy);
+        const extraGuestFee = extraGuests * extraGuestRate * Math.max(0, nights);
+
+        extraGuestElement.value = extraGuestFee.toFixed(2);
+
+        if (typeof calculateAdminBookingPricing === "function") {
+            calculateAdminBookingPricing();
+        }
+    }
+
+    ["addAdults", "addChildren", "addCheckin", "addCheckout"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("change", calculateAdminExtraGuestFee);
+        }
+    });
+
+    calculateAdminExtraGuestFee();
+
+    // ============================================
+    // Admin Add Booking - Guest Validation
+    // ============================================
+
+    function updateAdminTotalGuests() {
+    const adults =
+        Number(document.getElementById("addAdults")?.value) || 0;
+
+    const children =
+        Number(document.getElementById("addChildren")?.value) || 0;
+
+    const totalGuests = adults + children;
+
+    const totalGuestsElement =
+        document.getElementById("addTotalGuests");
+
+    if (totalGuestsElement) {
+        totalGuestsElement.value = totalGuests;
+    }
+
+    return totalGuests;
+}
+
+function validateAdminGuestCount() {
+        const adultsElement = document.getElementById("addAdults");
+        const childrenElement = document.getElementById("addChildren");
+        const errorElement = document.getElementById("addBookingError");
+
+        const adults = Number(adultsElement?.value) || 0;
+        const children = Number(childrenElement?.value) || 0;
+        const totalGuests = adults + children;
+        const maxGuests = Number(CONFIG?.villa?.maxGuests) || 9;
+
+        if (adults < 1) {
+            if (errorElement) {
+                errorElement.textContent = "At least 1 adult is required.";
+                errorElement.style.display = "block";
+            }
+            return false;
+        }
+
+        if (totalGuests > maxGuests) {
+            if (errorElement) {
+                errorElement.textContent =
+                    `Maximum ${maxGuests} guests are allowed. Current guest count: ${totalGuests}.`;
+                errorElement.style.display = "block";
+            }
+            return false;
+        }
+
+        if (errorElement) {
+            errorElement.textContent = "";
+            errorElement.style.display = "none";
+        }
+
+        return true;
+    }
+
+    ["addAdults", "addChildren"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("input", validateAdminGuestCount);
+            element.addEventListener("change", validateAdminGuestCount);
+        }
+    });
+
+    validateAdminGuestCount();
+
+    // ============================================
+    // Admin Add Booking - Date Validation
+    // ============================================
+
+    function validateAdminBookingDates() {
+        const checkin = document.getElementById("addCheckin")?.value;
+        const checkout = document.getElementById("addCheckout")?.value;
+        const errorElement = document.getElementById("addBookingError");
+
+        if (!checkin || !checkout) {
+            if (errorElement) {
+                errorElement.textContent = "";
+                errorElement.style.display = "none";
+            }
+            return false;
+        }
+
+        const [checkinYear, checkinMonth, checkinDay] = checkin.split("-").map(Number);
+        const [checkoutYear, checkoutMonth, checkoutDay] = checkout.split("-").map(Number);
+
+        const checkinDate = Date.UTC(checkinYear, checkinMonth - 1, checkinDay);
+        const checkoutDate = Date.UTC(checkoutYear, checkoutMonth - 1, checkoutDay);
+
+        if (checkoutDate <= checkinDate) {
+            if (errorElement) {
+                errorElement.textContent = "Check-out date must be after the check-in date.";
+                errorElement.style.display = "block";
+            }
+            return false;
+        }
+
+        if (errorElement) {
+            errorElement.textContent = "";
+            errorElement.style.display = "none";
+        }
+
+        return true;
+    }
+
+    ["addCheckin", "addCheckout"].forEach(id => {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.addEventListener("change", validateAdminBookingDates);
+        }
+    });
+
+    validateAdminBookingDates();
+
+
+const adminAdultsInput = document.getElementById("addAdults");
+const adminChildrenInput = document.getElementById("addChildren");
+
+if (adminAdultsInput) {
+    adminAdultsInput.addEventListener("input", () => {
+        updateAdminTotalGuests();
+        validateAdminGuestCount();
+    });
+}
+
+if (adminChildrenInput) {
+    adminChildrenInput.addEventListener("input", () => {
+        updateAdminTotalGuests();
+        validateAdminGuestCount();
+    });
+}
+
+updateAdminTotalGuests();
+    // ============================================
+    // Admin Add Booking - Save Validation Hook
+    // ============================================
+
+    const saveBookingBtn = document.getElementById("saveBookingBtn");
+
+    if (saveBookingBtn) {
+        saveBookingBtn.addEventListener("click", async () => {
+            const datesValid = validateAdminBookingDates();
+            const guestsValid = validateAdminGuestCount();
+            const guestInformationValid = validateAdminGuestInformation();
+
+            if (!datesValid || !guestsValid || !guestInformationValid) {
+                document.getElementById("addBookingError")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+                return;
+            }
+
+            const activeBookings = await getActiveBookings();
+
+            const checkin = document.getElementById("addCheckin")?.value || "";
+            const checkout = document.getElementById("addCheckout")?.value || "";
+
+            const conflict = activeBookings.some(existingBooking => {
+                if (!existingBooking.checkin || !existingBooking.checkout) {
+                    return false;
+                }
+
+                return (
+                    existingBooking.checkin < checkout &&
+                    existingBooking.checkout > checkin
+                );
+            });
+
+            if (conflict) {
+                const errorElement = document.getElementById("addBookingError");
+
+                if (errorElement) {
+                    errorElement.textContent =
+                        "The selected dates are not available. An existing Pending or Confirmed booking overlaps these dates.";
+                    errorElement.style.display = "block";
+                }
+
+                document.getElementById("addBookingError")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
+                return;
+            }
+
+            // ============================================
+            // Build and save Admin Booking
+            // ============================================
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, "0");
+            const day = String(today.getDate()).padStart(2, "0");
+            const randomNumber = Math.floor(1000 + Math.random() * 9000);
+
+            const bookingReference =
+                `JSV-${year}${month}${day}-${randomNumber}`;
+
+
+            const adults =
+                Number(document.getElementById("addAdults")?.value) || 0;
+
+            const children =
+                Number(document.getElementById("addChildren")?.value) || 0;
+
+            const totalGuests =
+                Number(document.getElementById("addTotalGuests")?.value) ||
+                adults + children;
+
+            const nights =
+                Number(document.getElementById("addNights")?.textContent) || 0;
+
+            const accommodation =
+                Number(document.getElementById("addAccommodation")?.value) || 0;
+
+            const extraGuestFee =
+                Number(document.getElementById("addExtraGuestFee")?.value) || 0;
+
+            const cleaningFee =
+                Number(document.getElementById("addCleaningFee")?.value) || 0;
+
+            const total =
+                accommodation + extraGuestFee + cleaningFee;
+
+            const depositAmount =
+                Number(
+                    document
+                        .getElementById("addDepositAmount")
+                        ?.textContent
+                        ?.replace(/[^0-9.-]/g, "")
+                ) || 0;
+
+            const balanceAmount =
+                Number(
+                    document
+                        .getElementById("addBalanceAmount")
+                        ?.textContent
+                        ?.replace(/[^0-9.-]/g, "")
+                ) || 0;
+
+            const bookingData = {
+                bookingReference,
+
+                guestName:
+                    document.getElementById("addGuestName")?.value.trim() || "",
+
+                email:
+                    document.getElementById("addEmail")?.value.trim() || "",
+
+                phone:
+                    document.getElementById("addPhone")?.value.trim() || "",
+
+                country:
+                    document.getElementById("addCountry")?.value.trim() || "",
+
+                checkin,
+                checkout,
+
+                adults,
+                children,
+                totalGuests,
+                nights,
+
+                arrivalTime:
+                    document.getElementById("addArrivalTime")?.value || "",
+
+                specialRequests:
+                    document.getElementById("addSpecialRequests")?.value.trim() || "",
+
+                accommodation,
+                extraGuestFee,
+                cleaningFee,
+                total,
+
+                currency: CONFIG.pricing.currency,
+
+                depositPercentage:
+                    Number(CONFIG.payment.depositPercentage) || 0,
+
+                depositAmount,
+                balanceAmount,
+
+                balanceDueHoursBeforeCheckin:
+                    Number(CONFIG.payment.balanceDueHoursBeforeCheckin) || 24,
+
+                balanceGracePeriodHours:
+                    Number(CONFIG.payment.balanceGracePeriodHours) || 48,
+
+                paymentStatus:
+                    document.getElementById("addPaymentStatus")?.value ||
+                    "Deposit Required",
+
+                status:
+                    document.getElementById("addBookingStatus")?.value ||
+                    CONFIG.bookingStatus.pending,
+
+                bookingSource:
+                    document.getElementById("addBookingSource")?.value ||
+                    "Manual",
+
+                createdAt:
+                    firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                saveBookingBtn.disabled = true;
+                saveBookingBtn.textContent = "Saving...";
+
+                const docRef =
+                    await db
+                        .collection(CONFIG.firestore.bookingsCollection)
+                        .add(bookingData);
+
+                console.log(
+                    "Admin booking saved successfully:",
+                    bookingReference,
+                    docRef.id
+                );
+
+                alert(
+                    `Booking saved successfully.\n\nBooking Reference: ${bookingReference}`
+                );
+
+                const panel =
+                    document.getElementById("addBookingPanel");
+
+                if (panel) {
+                    panel.style.display = "none";
+                }
+
+                await loadBookings();
+
+            } catch (error) {
+                console.error(
+                    "Unable to save Admin booking:",
+                    error
+                );
+
+                const errorElement =
+                    document.getElementById("addBookingError");
+
+                if (errorElement) {
+                    errorElement.textContent =
+                        `Unable to save booking: ${error.message || error}`;
+
+                    errorElement.style.display = "block";
+                }
+
+                document
+                    .getElementById("addBookingError")
+                    ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+
+            } finally {
+                saveBookingBtn.disabled = false;
+                saveBookingBtn.textContent = "Save Booking";
+            }
+        });
+    }
+
+    // ============================================
+    // Admin Add Booking - Guest Information Validation
+    // ============================================
+
+    function validateAdminGuestInformation() {
+        const guestName = document.getElementById("addGuestName")?.value.trim();
+        const errorElement = document.getElementById("addBookingError");
+
+        if (!guestName) {
+            if (errorElement) {
+                errorElement.textContent = "Guest full name is required.";
+                errorElement.style.display = "block";
+            }
+            return false;
+        }
+
+        if (errorElement) {
+            errorElement.textContent = "";
+            errorElement.style.display = "none";
+        }
+
+        return true;
+    }
+
+
+
+
+
+
+
+

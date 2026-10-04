@@ -645,7 +645,8 @@
             grid-column: auto;
         }
     }
-</style></head><body
+</style>    <link rel="stylesheet" href="../../assets/css/admin-navigation.css">
+</head><body
     data-admin-login-path="../login.html"
     style="visibility:hidden;"
 >
@@ -668,15 +669,13 @@
             </div>
         </header>
 
-        <nav class="accounts-nav">
-            <a href="./dashboard.html">Dashboard</a>
-            <a href="./bookings.html">Bookings</a>
-            <a href="./payments.html" class="active">Payments</a>
-            <a href="./categories.html">Categories</a>
-            <a href="./expenses.html">Expenses</a>
-            <a href="./utility-bills.html">Utility Bills</a>
-            <a href="./profitability.html">Profitability</a>
-            <a href="./reports.html">Reports</a>
+                <nav class="accounts-nav">
+            <a href="/admin/index.html">Admin Portal</a>
+            <a href="/admin/accounts/bookings.html">Bookings</a>
+            <a href="/admin/accounts/payments.html" class="active">Payments</a>
+            <a href="/admin/accounts/expenses/expenses.html">Expenses</a>
+            <a href="/admin/accounts/categories.html">Categories</a>
+            <a href="/admin/accounts/utilities/utilities.html">Utilities</a>
         </nav>
 
         <div
@@ -1254,6 +1253,11 @@
 <script src="../../assets/js/admin-auth-guard.js"></script>
 <script src="./accounts-payments-utils.js"></script>
 <script src="./accounts-payments.js"></script>
+    <script src="../../assets/js/admin-navigation.js"></script>
 </body>
 </html>
+
+
+
+
 
