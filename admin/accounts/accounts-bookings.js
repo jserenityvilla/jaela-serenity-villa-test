@@ -1332,3 +1332,24 @@ updateAdminTotalGuests();
 
 
 
+    const getActiveBookings = async () => {
+        const config = window.CONFIG || {};
+        const collectionName =
+            config.firestore?.bookingsCollection ||
+            window.APP_CONFIG?.firestore?.bookingsCollection ||
+            "bookings";
+
+        const snapshot = await db
+            .collection(collectionName)
+            .get();
+
+        return snapshot.docs
+            .map((doc) => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            .filter((booking) =>
+                String(booking.status || "").toLowerCase() !== "cancelled"
+            );
+    };
+
