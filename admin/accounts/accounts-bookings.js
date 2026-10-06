@@ -543,17 +543,17 @@
         document.getElementById(
             "detailAccommodation"
         ).textContent =
-            money(booking.accommodation);
+            money(booking.accommodation, booking.currency || "AUD");
 
         document.getElementById(
             "detailExtraGuest"
         ).textContent =
-            money(booking.extraGuestFee);
+            money(booking.extraGuestFee, booking.currency || "AUD");
 
         document.getElementById(
             "detailCleaning"
         ).textContent =
-            money(booking.cleaningFee);
+            money(booking.cleaningFee, booking.currency || "AUD");
 
         document.getElementById(
             "detailTotal"
