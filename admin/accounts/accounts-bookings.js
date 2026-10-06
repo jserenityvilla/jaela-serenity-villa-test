@@ -784,31 +784,38 @@
     // Admin Add Booking - Pricing Calculation
     // ============================================
 
+    function formatBookingCurrency(amount, currency) {
+        const value = Number(amount) || 0;
+        return currency + " " + value.toFixed(2);
+    }
+
     function calculateAdminBookingPricing() {
         const accommodation = parseFloat(document.getElementById("addAccommodation")?.value) || 0;
         const extraGuestFee = parseFloat(document.getElementById("addExtraGuestFee")?.value) || 0;
         const cleaningFee = parseFloat(document.getElementById("addCleaningFee")?.value) || 0;
-
+        const currency = document.getElementById("addBookingCurrency")?.value || CONFIG?.pricing?.currency || "AUD";
+        const exchangeRate = Number(document.getElementById("addExchangeRate")?.value) || 0;
         const total = accommodation + extraGuestFee + cleaningFee;
-        const depositPercentage = 30;
+        const depositPercentage = Number(CONFIG?.payment?.depositPercentage) || 30;
         const deposit = total * (depositPercentage / 100);
         const balance = total - deposit;
+        const totalLkr = currency === "LKR" ? total : total * exchangeRate;
+        const depositLkr = currency === "LKR" ? deposit : deposit * exchangeRate;
+        const balanceLkr = currency === "LKR" ? balance : balance * exchangeRate;
 
         const totalElement = document.getElementById("addTotal");
         const depositElement = document.getElementById("addDepositAmount");
         const balanceElement = document.getElementById("addBalanceAmount");
+        const totalLkrElement = document.getElementById("addTotalLkr");
+        const depositLkrElement = document.getElementById("addDepositAmountLkr");
+        const balanceLkrElement = document.getElementById("addBalanceAmountLkr");
 
-        if (totalElement) {
-            totalElement.textContent = `AUD $${total.toFixed(2)}`;
-        }
-
-        if (depositElement) {
-            depositElement.textContent = `AUD $${deposit.toFixed(2)}`;
-        }
-
-        if (balanceElement) {
-            balanceElement.textContent = `AUD $${balance.toFixed(2)}`;
-        }
+        if (totalElement) totalElement.textContent = formatBookingCurrency(total, currency);
+        if (depositElement) depositElement.textContent = formatBookingCurrency(deposit, currency);
+        if (balanceElement) balanceElement.textContent = formatBookingCurrency(balance, currency);
+        if (totalLkrElement) totalLkrElement.textContent = formatBookingCurrency(totalLkr, "LKR");
+        if (depositLkrElement) depositLkrElement.textContent = formatBookingCurrency(depositLkr, "LKR");
+        if (balanceLkrElement) balanceLkrElement.textContent = formatBookingCurrency(balanceLkr, "LKR");
     }
 
     ["addAccommodation", "addExtraGuestFee", "addCleaningFee"].forEach(id => {
@@ -816,6 +823,14 @@
 
         if (element) {
             element.addEventListener("input", calculateAdminBookingPricing);
+        }
+    });
+
+    ["addBookingCurrency", "addExchangeRate"].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener("input", calculateAdminBookingPricing);
+            element.addEventListener("change", calculateAdminBookingPricing);
         }
     });
 
@@ -1179,6 +1194,13 @@ updateAdminTotalGuests();
                         ?.replace(/[^0-9.-]/g, "")
                 ) || 0;
 
+            const bookingCurrency = document.getElementById("addBookingCurrency")?.value || CONFIG.pricing.currency;
+            const exchangeRate = bookingCurrency === "LKR" ? 1 : Number(document.getElementById("addExchangeRate")?.value) || 0;
+            const exchangeRateDate = document.getElementById("addExchangeRateDate")?.value || "";
+            const totalLkr = bookingCurrency === "LKR" ? total : total * exchangeRate;
+            const depositAmountLkr = bookingCurrency === "LKR" ? depositAmount : depositAmount * exchangeRate;
+            const balanceAmountLkr = bookingCurrency === "LKR" ? balanceAmount : balanceAmount * exchangeRate;
+
             const bookingData = {
                 bookingReference,
 
@@ -1213,7 +1235,13 @@ updateAdminTotalGuests();
                 cleaningFee,
                 total,
 
-                currency: CONFIG.pricing.currency,
+                currency: bookingCurrency,
+                reportingCurrency: CONFIG.pricing.reportingCurrency || "LKR",
+                exchangeRateToLkr: exchangeRate,
+                exchangeRateDate,
+                totalLkr,
+                depositAmountLkr,
+                balanceAmountLkr,
 
                 depositPercentage:
                     Number(CONFIG.payment.depositPercentage) || 0,
@@ -1230,6 +1258,12 @@ updateAdminTotalGuests();
                 paymentStatus:
                     document.getElementById("addPaymentStatus")?.value ||
                     "Deposit Required",
+
+                depositPaid:
+                    ["Deposit Paid", "Balance Due", "Paid"].includes(document.getElementById("addPaymentStatus")?.value),
+
+                balancePaid:
+                    document.getElementById("addPaymentStatus")?.value === "Paid",
 
                 status:
                     document.getElementById("addBookingStatus")?.value ||
