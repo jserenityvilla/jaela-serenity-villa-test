@@ -4,9 +4,9 @@
     let db = null;
     let allBookings = [];
 
-    const money = (value) => {
+    const money = (value, currency = "AUD") => {
         const amount = Number(value) || 0;
-        return `AUD $${amount.toFixed(2)}`;
+        return `${currency} ${amount.toFixed(2)}`;
     };
 
     const number = (value) => Number(value) || 0;
@@ -459,19 +459,19 @@
                 </td>
 
                 <td class="numeric">
-                    ${money(booking.total)}
+                    ${money(booking.total, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(deposit)}
+                    ${money(deposit, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(balance)}
+                    ${money(balance, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(outstanding)}
+                    ${money(outstanding, booking.currency || "AUD")}
                 </td>
 
                 <td>
@@ -558,32 +558,32 @@
         document.getElementById(
             "detailTotal"
         ).textContent =
-            money(booking.total);
+            money(booking.total, booking.currency || "AUD");
 
         document.getElementById(
             "detailDeposit"
         ).textContent =
-            money(booking.depositAmount);
+            money(booking.depositAmount, booking.currency || "AUD");
 
         document.getElementById(
             "detailDepositPaid"
         ).textContent =
-            money(getDepositPaid(booking));
+            money(getDepositPaid(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailBalance"
         ).textContent =
-            money(booking.balanceAmount);
+            money(booking.balanceAmount, booking.currency || "AUD");
 
         document.getElementById(
             "detailBalancePaid"
         ).textContent =
-            money(getBalancePaid(booking));
+            money(getBalancePaid(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailOutstanding"
         ).textContent =
-            money(getOutstanding(booking));
+            money(getOutstanding(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailPaymentStatus"
