@@ -34,10 +34,12 @@
 
     function money(value) {
         return new Intl.NumberFormat(
-            "en-AU",
+            "en-LK",
             {
                 style: "currency",
-                currency: "AUD"
+                currency: "LKR",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
             }
         ).format(Number(value) || 0);
     }
@@ -502,15 +504,31 @@
         overlapNights,
         bookingNights
     ) {
+        const currency =
+            String(
+                booking.currency || "AUD"
+            ).toUpperCase();
+
+        const exchangeRate =
+            currency === "LKR"
+                ? 1
+                : Number(
+                    booking.exchangeRateToLkr
+                ) || 0;
+
         const accommodation =
-            Number(
-                booking.accommodation
-            ) || 0;
+            (
+                Number(
+                    booking.accommodation
+                ) || 0
+            ) * exchangeRate;
 
         const extraGuestFee =
-            Number(
-                booking.extraGuestFee
-            ) || 0;
+            (
+                Number(
+                    booking.extraGuestFee
+                ) || 0
+            ) * exchangeRate;
 
         const accommodationShare =
             bookingNights > 0
@@ -543,9 +561,11 @@
             checkout <= period.to
         ) {
             cleaningFee =
-                Number(
-                    booking.cleaningFee
-                ) || 0;
+                (
+                    Number(
+                        booking.cleaningFee
+                    ) || 0
+                ) * exchangeRate;
         }
 
         return {
@@ -805,20 +825,88 @@
 
         bookings.forEach(
             booking => {
-                depositsReceived +=
+                const currency =
+                    String(
+                        booking.currency || "AUD"
+                    ).toUpperCase();
+
+                const exchangeRate =
+                    currency === "LKR"
+                        ? 1
+                        : Number(
+                            booking.exchangeRateToLkr
+                        ) || 0;
+
+                const depositAmount =
                     Number(
-                        booking.depositPaid
+                        booking.depositAmount
                     ) || 0;
 
-                balancesReceived +=
-                    Number(
-                        booking.balancePaid
-                    ) || 0;
-
-                outstanding +=
+                const balanceAmount =
                     Number(
                         booking.balanceAmount
                     ) || 0;
+
+                const depositAmountLkr =
+                    booking.depositAmountLkr !== undefined
+                        ? Number(
+                            booking.depositAmountLkr
+                        ) || 0
+                        : depositAmount * exchangeRate;
+
+                const balanceAmountLkr =
+                    booking.balanceAmountLkr !== undefined
+                        ? Number(
+                            booking.balanceAmountLkr
+                        ) || 0
+                        : balanceAmount * exchangeRate;
+
+                const depositPaid =
+                    booking.depositPaid === true ||
+                    booking.paymentStatus === "Deposit Paid" ||
+                    booking.paymentStatus === "Balance Due" ||
+                    booking.paymentStatus === "Paid";
+
+                const balancePaid =
+                    booking.balancePaid === true ||
+                    booking.balancePaymentStatus === "Paid" ||
+                    booking.paymentStatus === "Paid";
+
+                if (depositPaid) {
+                    depositsReceived +=
+                        depositAmountLkr;
+                }
+
+                if (balancePaid) {
+                    balancesReceived +=
+                        balanceAmountLkr;
+                }
+
+                const totalLkr =
+                    booking.totalLkr !== undefined
+                        ? Number(
+                            booking.totalLkr
+                        ) || 0
+                        : (
+                            Number(
+                                booking.total
+                            ) || 0
+                        ) * exchangeRate;
+
+                outstanding += Math.max(
+                    0,
+                    totalLkr -
+                    (
+                        depositPaid
+                            ? depositAmountLkr
+                            : 0
+                    ) -
+                    (
+                        balancePaid
+                            ? balanceAmountLkr
+                            : 0
+                    )
+                );
             }
         );
 
