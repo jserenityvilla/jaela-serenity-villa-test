@@ -725,7 +725,7 @@
 
                 const date =
                     parseDate(
-                        expense.date
+                        expense.expenseDate
                     );
 
                 if (
