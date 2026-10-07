@@ -927,6 +927,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const validCurrencies = [
+            "LKR",
             "AUD"
         ];
 
@@ -1496,7 +1497,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
 });
-
-
-
 
