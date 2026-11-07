@@ -603,7 +603,9 @@
         getRecordLkrAmount,
         getExpensesInPeriod,
         expenseBreakdown,
+        expenseTotal,
         utilityBreakdown,
+        utilityTotal,
         calculateProfitability
     };
 
