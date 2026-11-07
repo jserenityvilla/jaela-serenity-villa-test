@@ -252,105 +252,62 @@
     }
 
     function renderExpenseBreakdown(
-        expenses
+        expenses,
+        periodFrom,
+        periodTo
     ) {
-        clearRows(
-            "expenseBreakdownBody"
-        );
+        clearRows("expenseBreakdownBody");
 
-        if (!expenses.length) {
-            $("expenseEmpty")
-                .style.display = "block";
+        const totals =
+            AccountsProfitabilityUtils.expenseBreakdown(
+                expenses,
+                periodFrom,
+                periodTo
+            );
+
+        const rows = Object.entries(totals);
+        if (!rows.length) {
+            $("expenseEmpty").style.display = "block";
             return;
         }
 
-        $("expenseEmpty")
-            .style.display = "none";
+        $("expenseEmpty").style.display = "none";
 
-        const totals = {};
-
-        expenses.forEach(
-            expense => {
-                const type =
-                    expense.expenseType ||
-                    "Other";
-
-                totals[type] =
-                    (
-                        totals[type] || 0
-                    ) +
-                    (
-                        Number(
-                            expense.amount
-                        ) || 0
-                    );
-            }
-        );
-
-        Object.entries(totals)
-            .sort(
-                (a, b) =>
-                    b[1] - a[1]
-            )
-            .forEach(
-                ([type, amount]) =>
-                    addBreakdownRow(
-                        "expenseBreakdownBody",
-                        type,
-                        amount
-                    )
+        rows
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([type, amount]) =>
+                addBreakdownRow("expenseBreakdownBody", type, amount)
             );
     }
 
     function renderUtilityBreakdown(
-        utilityBills
+        utilityBills,
+        bookings,
+        periodFrom,
+        periodTo
     ) {
-        clearRows(
-            "utilityBreakdownBody"
-        );
+        clearRows("utilityBreakdownBody");
 
-        if (!utilityBills.length) {
-            $("utilityEmpty")
-                .style.display = "block";
+        const totals =
+            AccountsProfitabilityUtils.utilityBreakdown(
+                utilityBills,
+                bookings,
+                periodFrom,
+                periodTo
+            );
+
+        const rows = Object.entries(totals);
+        if (!rows.length) {
+            $("utilityEmpty").style.display = "block";
             return;
         }
 
-        $("utilityEmpty")
-            .style.display = "none";
+        $("utilityEmpty").style.display = "none";
 
-        const totals = {};
-
-        utilityBills.forEach(
-            bill => {
-                const allocation =
-                    bill.allocationMethod ||
-                    "None";
-
-                totals[allocation] =
-                    (
-                        totals[allocation] ||
-                        0
-                    ) +
-                    (
-                        Number(
-                            bill.amount
-                        ) || 0
-                    );
-            }
-        );
-
-        Object.entries(totals)
-            .sort(
-                (a, b) =>
-                    b[1] - a[1]
-            )
-            .forEach(
-                ([allocation, amount]) =>
-                    addBreakdownRow(
-                        "utilityBreakdownBody",
-                        allocation,
-                        amount
-                    )
+        rows
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([allocation, amount]) =>
+                addBreakdownRow("utilityBreakdownBody", allocation, amount)
             );
     }
 
@@ -607,23 +564,16 @@
              * authoritative source for profitability.
              */
             renderExpenseBreakdown(
-                expenses.filter(
-                    expense =>
-                        (
-                            expense.status ||
-                            "Active"
-                        ) === "Active"
-                )
+                expenses,
+                from,
+                to
             );
 
             renderUtilityBreakdown(
-                utilityBills.filter(
-                    bill =>
-                        (
-                            bill.status ||
-                            "Active"
-                        ) === "Active"
-                )
+                utilityBills,
+                bookings,
+                from,
+                to
             );
 
             showMessage(
