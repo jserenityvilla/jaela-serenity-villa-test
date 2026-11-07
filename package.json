@@ -2,5 +2,8 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
     "playwright": "^1.63.0"
+  },
+  "scripts": {
+    "test:profitability": "node --test tests/accounts-profitability-utils.test.js"
   }
 }
