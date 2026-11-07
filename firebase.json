@@ -22,7 +22,18 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/functions/**",
+      "**/tests/**",
+      "firestore.rules",
+      "package.json",
+      "package-lock.json",
+      "README.md",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "tools/**",
+      "Ja-Ela_Serenity_Villa_Automated_Regression_Runner/**",
+      "CNAME"
     ]
   }
 }
