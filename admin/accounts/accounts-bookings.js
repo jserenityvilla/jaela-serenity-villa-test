@@ -11,6 +11,37 @@
 
     const number = (value) => Number(value) || 0;
 
+    const parseFiniteNonNegativeNumber = (value) => {
+        if (typeof value !== "number" && typeof value !== "string") {
+            return null;
+        }
+
+        if (typeof value === "string" && value.trim() === "") {
+            return null;
+        }
+
+        const parsed = Number(value);
+
+        return Number.isFinite(parsed) && parsed >= 0
+            ? parsed
+            : null;
+    };
+
+    const calculateLkrEquivalent = (amount, exchangeRate) => {
+        const validAmount = parseFiniteNonNegativeNumber(amount);
+        const validRate = parseFiniteNonNegativeNumber(exchangeRate);
+
+        if (validAmount === null || validRate === null) {
+            return null;
+        }
+
+        const amountLkr = validAmount * validRate;
+
+        return Number.isFinite(amountLkr) && amountLkr >= 0
+            ? amountLkr
+            : null;
+    };
+
     const getGuestCount = (booking) => {
         const storedTotal = Number(booking.totalGuests);
 
@@ -87,6 +118,84 @@
             0,
             total - depositPaid - balancePaid
         );
+    };
+
+    const getDepositPaidLkr = (booking) => {
+        if (
+            booking.depositPaymentStatus === "Paid" &&
+            parseFiniteNonNegativeNumber(booking.depositPaymentAmountLkr) > 0
+        ) {
+            return parseFiniteNonNegativeNumber(
+                booking.depositPaymentAmountLkr
+            );
+        }
+
+        if (
+            booking.depositPaid === true ||
+            (
+                (booking.depositPaymentStatus === undefined ||
+                    booking.depositPaymentStatus === null) &&
+                booking.paymentStatus === "Balance Due"
+            )
+        ) {
+            return parseFiniteNonNegativeNumber(booking.depositAmountLkr) || 0;
+        }
+
+        return 0;
+    };
+
+    const getBalancePaidLkr = (booking) => {
+        if (
+            booking.balancePaymentStatus === "Paid" &&
+            parseFiniteNonNegativeNumber(booking.balancePaymentAmountLkr) > 0
+        ) {
+            return parseFiniteNonNegativeNumber(
+                booking.balancePaymentAmountLkr
+            );
+        }
+
+        if (
+            booking.balancePaid === true ||
+            booking.balancePaymentStatus === "Paid"
+        ) {
+            return parseFiniteNonNegativeNumber(booking.balanceAmountLkr) || 0;
+        }
+
+        return 0;
+    };
+
+    const getTotalLkr = (booking) => {
+        const storedTotalLkr = parseFiniteNonNegativeNumber(booking.totalLkr);
+        if (storedTotalLkr !== null && storedTotalLkr > 0) {
+            return storedTotalLkr;
+        }
+
+        const total = parseFiniteNonNegativeNumber(booking.total) || 0;
+
+        if (booking.currency === "LKR") {
+            return total;
+        }
+
+        const exchangeRate = parseFiniteNonNegativeNumber(
+            booking.exchangeRateToLkr
+        );
+        if (exchangeRate === null || exchangeRate <= 0) {
+            return 0;
+        }
+
+        return calculateLkrEquivalent(total, exchangeRate) || 0;
+    };
+
+    const getOutstandingLkr = (booking) => {
+        const totalLkr = getTotalLkr(booking);
+        const depositPaidLkr = getDepositPaidLkr(booking);
+        const balancePaidLkr = getBalancePaidLkr(booking);
+
+        const outstandingLkr = totalLkr - depositPaidLkr - balancePaidLkr;
+
+        return Number.isFinite(outstandingLkr)
+            ? Math.max(0, outstandingLkr)
+            : 0;
     };
 
     const parseDate = (value) => {
@@ -331,27 +440,28 @@
                 )
                 .reduce(
                     (sum, booking) =>
-                        sum + number(booking.total),
+                        sum + getTotalLkr(booking),
                     0
                 );
+
         const deposits =
             bookings.reduce(
                 (sum, booking) =>
-                    sum + getDepositPaid(booking),
+                    sum + getDepositPaidLkr(booking),
                 0
             );
 
         const balances =
             bookings.reduce(
                 (sum, booking) =>
-                    sum + getBalancePaid(booking),
+                    sum + getBalancePaidLkr(booking),
                 0
             );
 
         const outstanding =
             bookings.reduce(
                 (sum, booking) =>
-                    sum + getOutstanding(booking),
+                    sum + getOutstandingLkr(booking),
                 0
             );
 
@@ -365,20 +475,21 @@
 
         document.getElementById(
             "summaryRevenue"
-        ).textContent = money(revenue);
+        ).textContent = money(revenue, "LKR");
 
         document.getElementById(
             "summaryDeposits"
-        ).textContent = money(deposits);
+        ).textContent = money(deposits, "LKR");
 
         document.getElementById(
             "summaryBalances"
-        ).textContent = money(balances);
+        ).textContent = money(balances, "LKR");
 
         document.getElementById(
             "summaryOutstanding"
-        ).textContent = money(outstanding);
+        ).textContent = money(outstanding, "LKR");
     };
+
 
     const renderRows = (bookings) => {
         const tbody =
