@@ -30,7 +30,10 @@
       "package-lock.json",
       "README.md",
       "firebase-debug.log",
-      "firebase-debug.*.log"
+      "firebase-debug.*.log",
+      "tools/**",
+      "Ja-Ela_Serenity_Villa_Automated_Regression_Runner/**",
+      "CNAME"
     ]
   }
 }
