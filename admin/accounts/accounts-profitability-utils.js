@@ -170,30 +170,21 @@
                 periodTo
             );
 
-        const accommodation = getBookingLkrAmount(booking, "accommodation");
-
-        const extraGuestFee = getBookingLkrAmount(booking, "extraGuestFee");
-
-        const cleaningFee = getBookingLkrAmount(booking, "cleaningFee");
-
-        const nightlyStayRevenue =
-            accommodation + extraGuestFee;
-
-        const nightlyAllocation =
-            nightlyStayRevenue *
-            (overlapNights / totalNights);
+        const nightlyAllocation = overlapNights > 0
+            ? (
+                getBookingLkrAmount(booking, "accommodation") +
+                getBookingLkrAmount(booking, "extraGuestFee")
+            ) * (overlapNights / totalNights)
+            : 0;
 
         const cleaningRecognized =
             checkOut &&
             checkOut >= periodStart &&
             checkOut <= periodEnd
-                ? cleaningFee
+                ? getBookingLkrAmount(booking, "cleaningFee")
                 : 0;
 
-        return (
-            nightlyAllocation +
-            cleaningRecognized
-        );
+        return nightlyAllocation + cleaningRecognized;
     }
 
     function revenueBreakdown(bookings, periodFrom, periodTo) {
@@ -223,27 +214,24 @@
                     periodTo
                 );
 
-            const bookingAccommodation = getBookingLkrAmount(booking, "accommodation");
+            if (overlapNights > 0) {
+                const allocation =
+                    overlapNights / totalNights;
 
-            const bookingExtraGuestFee = getBookingLkrAmount(booking, "extraGuestFee");
+                accommodation +=
+                    getBookingLkrAmount(booking, "accommodation") * allocation;
 
-            const bookingCleaningFee = getBookingLkrAmount(booking, "cleaningFee");
-
-            const allocation =
-                overlapNights / totalNights;
-
-            accommodation +=
-                bookingAccommodation * allocation;
-
-            extraGuestFee +=
-                bookingExtraGuestFee * allocation;
+                extraGuestFee +=
+                    getBookingLkrAmount(booking, "extraGuestFee") * allocation;
+            }
 
             if (
                 checkOut &&
                 checkOut >= periodStart &&
                 checkOut <= periodEnd
             ) {
-                cleaningFee += bookingCleaningFee;
+                cleaningFee +=
+                    getBookingLkrAmount(booking, "cleaningFee");
             }
         });
 
@@ -369,7 +357,6 @@
         utilityBills
             .filter(bill => (bill.status || ACTIVE) === ACTIVE)
             .forEach(bill => {
-                const amount = getRecordLkrAmount(bill, "Utility bill");
                 const allocationMethod =
                     String(bill.allocationMethod || "None").trim();
 
@@ -380,7 +367,10 @@
                         periodFrom,
                         periodTo
                     )) {
-                        add(allocationMethod, amount);
+                        add(
+                            allocationMethod,
+                            getRecordLkrAmount(bill, "Utility bill")
+                        );
                     }
                     return;
                 }
@@ -431,7 +421,7 @@
                         add(
                             allocationMethod,
                             Number((
-                                amount *
+                                getRecordLkrAmount(bill, "Utility bill") *
                                 reportingOccupiedNights /
                                 totalOccupiedNights
                             ).toFixed(2))
@@ -455,7 +445,10 @@
                         checkOut >= reportingStart &&
                         checkOut <= reportingEnd
                     ) {
-                        add(allocationMethod, amount);
+                        add(
+                            allocationMethod,
+                            getRecordLkrAmount(bill, "Utility bill")
+                        );
                     }
                 }
             });
