@@ -4,9 +4,9 @@
     let db = null;
     let allBookings = [];
 
-    const money = (value) => {
+    const money = (value, currency = "AUD") => {
         const amount = Number(value) || 0;
-        return `AUD $${amount.toFixed(2)}`;
+        return `${currency} ${amount.toFixed(2)}`;
     };
 
     const number = (value) => Number(value) || 0;
@@ -459,19 +459,19 @@
                 </td>
 
                 <td class="numeric">
-                    ${money(booking.total)}
+                    ${money(booking.total, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(deposit)}
+                    ${money(deposit, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(balance)}
+                    ${money(balance, booking.currency || "AUD")}
                 </td>
 
                 <td class="numeric">
-                    ${money(outstanding)}
+                    ${money(outstanding, booking.currency || "AUD")}
                 </td>
 
                 <td>
@@ -543,47 +543,47 @@
         document.getElementById(
             "detailAccommodation"
         ).textContent =
-            money(booking.accommodation);
+            money(booking.accommodation, booking.currency || "AUD");
 
         document.getElementById(
             "detailExtraGuest"
         ).textContent =
-            money(booking.extraGuestFee);
+            money(booking.extraGuestFee, booking.currency || "AUD");
 
         document.getElementById(
             "detailCleaning"
         ).textContent =
-            money(booking.cleaningFee);
+            money(booking.cleaningFee, booking.currency || "AUD");
 
         document.getElementById(
             "detailTotal"
         ).textContent =
-            money(booking.total);
+            money(booking.total, booking.currency || "AUD");
 
         document.getElementById(
             "detailDeposit"
         ).textContent =
-            money(booking.depositAmount);
+            money(booking.depositAmount, booking.currency || "AUD");
 
         document.getElementById(
             "detailDepositPaid"
         ).textContent =
-            money(getDepositPaid(booking));
+            money(getDepositPaid(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailBalance"
         ).textContent =
-            money(booking.balanceAmount);
+            money(booking.balanceAmount, booking.currency || "AUD");
 
         document.getElementById(
             "detailBalancePaid"
         ).textContent =
-            money(getBalancePaid(booking));
+            money(getBalancePaid(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailOutstanding"
         ).textContent =
-            money(getOutstanding(booking));
+            money(getOutstanding(booking), booking.currency || "AUD");
 
         document.getElementById(
             "detailPaymentStatus"
@@ -784,31 +784,38 @@
     // Admin Add Booking - Pricing Calculation
     // ============================================
 
+    function formatBookingCurrency(amount, currency) {
+        const value = Number(amount) || 0;
+        return currency + " " + value.toFixed(2);
+    }
+
     function calculateAdminBookingPricing() {
         const accommodation = parseFloat(document.getElementById("addAccommodation")?.value) || 0;
         const extraGuestFee = parseFloat(document.getElementById("addExtraGuestFee")?.value) || 0;
         const cleaningFee = parseFloat(document.getElementById("addCleaningFee")?.value) || 0;
-
+        const currency = document.getElementById("addBookingCurrency")?.value || CONFIG?.pricing?.currency || "AUD";
+        const exchangeRate = Number(document.getElementById("addExchangeRate")?.value) || 0;
         const total = accommodation + extraGuestFee + cleaningFee;
-        const depositPercentage = 30;
+        const depositPercentage = Number(CONFIG?.payment?.depositPercentage) || 30;
         const deposit = total * (depositPercentage / 100);
         const balance = total - deposit;
+        const totalLkr = currency === "LKR" ? total : total * exchangeRate;
+        const depositLkr = currency === "LKR" ? deposit : deposit * exchangeRate;
+        const balanceLkr = currency === "LKR" ? balance : balance * exchangeRate;
 
         const totalElement = document.getElementById("addTotal");
         const depositElement = document.getElementById("addDepositAmount");
         const balanceElement = document.getElementById("addBalanceAmount");
+        const totalLkrElement = document.getElementById("addTotalLkr");
+        const depositLkrElement = document.getElementById("addDepositAmountLkr");
+        const balanceLkrElement = document.getElementById("addBalanceAmountLkr");
 
-        if (totalElement) {
-            totalElement.textContent = `AUD $${total.toFixed(2)}`;
-        }
-
-        if (depositElement) {
-            depositElement.textContent = `AUD $${deposit.toFixed(2)}`;
-        }
-
-        if (balanceElement) {
-            balanceElement.textContent = `AUD $${balance.toFixed(2)}`;
-        }
+        if (totalElement) totalElement.textContent = formatBookingCurrency(total, currency);
+        if (depositElement) depositElement.textContent = formatBookingCurrency(deposit, currency);
+        if (balanceElement) balanceElement.textContent = formatBookingCurrency(balance, currency);
+        if (totalLkrElement) totalLkrElement.textContent = formatBookingCurrency(totalLkr, "LKR");
+        if (depositLkrElement) depositLkrElement.textContent = formatBookingCurrency(depositLkr, "LKR");
+        if (balanceLkrElement) balanceLkrElement.textContent = formatBookingCurrency(balanceLkr, "LKR");
     }
 
     ["addAccommodation", "addExtraGuestFee", "addCleaningFee"].forEach(id => {
@@ -816,6 +823,14 @@
 
         if (element) {
             element.addEventListener("input", calculateAdminBookingPricing);
+        }
+    });
+
+    ["addBookingCurrency", "addExchangeRate"].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener("input", calculateAdminBookingPricing);
+            element.addEventListener("change", calculateAdminBookingPricing);
         }
     });
 
@@ -1179,6 +1194,13 @@ updateAdminTotalGuests();
                         ?.replace(/[^0-9.-]/g, "")
                 ) || 0;
 
+            const bookingCurrency = document.getElementById("addBookingCurrency")?.value || CONFIG.pricing.currency;
+            const exchangeRate = bookingCurrency === "LKR" ? 1 : Number(document.getElementById("addExchangeRate")?.value) || 0;
+            const exchangeRateDate = document.getElementById("addExchangeRateDate")?.value || "";
+            const totalLkr = bookingCurrency === "LKR" ? total : total * exchangeRate;
+            const depositAmountLkr = bookingCurrency === "LKR" ? depositAmount : depositAmount * exchangeRate;
+            const balanceAmountLkr = bookingCurrency === "LKR" ? balanceAmount : balanceAmount * exchangeRate;
+
             const bookingData = {
                 bookingReference,
 
@@ -1213,7 +1235,13 @@ updateAdminTotalGuests();
                 cleaningFee,
                 total,
 
-                currency: CONFIG.pricing.currency,
+                currency: bookingCurrency,
+                reportingCurrency: CONFIG.pricing.reportingCurrency || "LKR",
+                exchangeRateToLkr: exchangeRate,
+                exchangeRateDate,
+                totalLkr,
+                depositAmountLkr,
+                balanceAmountLkr,
 
                 depositPercentage:
                     Number(CONFIG.payment.depositPercentage) || 0,
@@ -1230,6 +1258,12 @@ updateAdminTotalGuests();
                 paymentStatus:
                     document.getElementById("addPaymentStatus")?.value ||
                     "Deposit Required",
+
+                depositPaid:
+                    ["Deposit Paid", "Balance Due", "Paid"].includes(document.getElementById("addPaymentStatus")?.value),
+
+                balancePaid:
+                    document.getElementById("addPaymentStatus")?.value === "Paid",
 
                 status:
                     document.getElementById("addBookingStatus")?.value ||
@@ -1331,4 +1365,25 @@ updateAdminTotalGuests();
 
 
 
+
+    const getActiveBookings = async () => {
+        const config = window.CONFIG || {};
+        const collectionName =
+            config.firestore?.bookingsCollection ||
+            window.APP_CONFIG?.firestore?.bookingsCollection ||
+            "bookings";
+
+        const snapshot = await db
+            .collection(collectionName)
+            .get();
+
+        return snapshot.docs
+            .map((doc) => ({
+                id: doc.id,
+                ...doc.data()
+            }))
+            .filter((booking) =>
+                String(booking.status || "").toLowerCase() !== "cancelled"
+            );
+    };
 

@@ -27,6 +27,8 @@ const CONFIG = {
 
         currency: "AUD",
 
+        reportingCurrency: "LKR",
+
         nightlyRate: 60,
 
         cleaningFee: 6,
