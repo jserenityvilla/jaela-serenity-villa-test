@@ -140,7 +140,7 @@ test("AUD expense without an LKR equivalent or exchange rate is rejected", () =>
     );
 });
 
-test("property utility bills are converted and filtered by bill date", () => {
+test("property utility bills without billing-period dates retain bill-date fallback", () => {
     const bills = [
         {
             id: "U-001",
@@ -166,6 +166,37 @@ test("property utility bills are converted and filtered by bill date", () => {
         utils.utilityTotal(bills, [booking], periodFrom, periodTo),
         2000
     );
+});
+
+test("property utility bills are prorated across inclusive billing-period days", () => {
+    const bill = {
+        id: "U-BILL-PERIOD",
+        status: "Active",
+        billDate: "2026-01-05",
+        billingPeriodFrom: "2026-01-02",
+        billingPeriodTo: "2026-01-05",
+        allocationMethod: "None",
+        amount: 4000,
+        currency: "LKR"
+    };
+
+    const firstPeriod = utils.utilityTotal(
+        [bill],
+        [],
+        date("2026-01-01"),
+        date("2026-01-03")
+    );
+
+    const secondPeriod = utils.utilityTotal(
+        [bill],
+        [],
+        date("2026-01-04"),
+        date("2026-01-05")
+    );
+
+    assert.equal(firstPeriod, 2000);
+    assert.equal(secondPeriod, 2000);
+    assert.equal(firstPeriod + secondPeriod, 4000);
 });
 
 test("occupied-night utility is allocated to the reporting-period slice", () => {
@@ -293,6 +324,33 @@ test("complete profitability calculation returns consistent LKR totals", () => {
     assert.equal(result.netProfit, 33000);
     assert.equal(result.bookedNights, 2);
     assert.equal(result.calendarNights, 3);
+});
+
+test("confirmed booking and guest metrics include only stays overlapping the selected period", () => {
+    const outsideBooking = {
+        ...booking,
+        id: "B-OUTSIDE",
+        bookingReference: "B-OUTSIDE",
+        checkin: "2026-02-01",
+        checkout: "2026-02-03",
+        nights: 2,
+        totalGuests: 4,
+        adults: 4,
+        children: 0
+    };
+
+    const result = utils.calculateProfitability({
+        bookings: [booking, outsideBooking],
+        expenses: [],
+        utilityBills: [],
+        periodFrom,
+        periodTo
+    });
+
+    assert.equal(result.confirmedBookings, 1);
+    assert.equal(result.totalGuests, 2);
+    assert.equal(result.guestNights, 4);
+    assert.equal(result.revenue, 44000);
 });
 
 test("out-of-period AUD records do not block the current report", () => {
