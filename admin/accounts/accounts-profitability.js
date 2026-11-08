@@ -116,91 +116,72 @@
             "message";
     }
 
-    function getReportingPeriod() {
-        const type =
-            $("periodType").value;
+    function parseDateInput(id, label) {
+        const value = $(id).value;
 
-        const selectedDate =
-            new Date(
-                `${$("periodDate").value}T00:00:00`
-            );
-
-        if (
-            Number.isNaN(
-                selectedDate.getTime()
-            )
-        ) {
+        if (!value) {
             throw new Error(
-                "Please select a valid reporting date."
+                `Please select a valid ${label} date.`
             );
         }
 
+        const date = new Date(`${value}T00:00:00`);
+
+        if (
+            Number.isNaN(date.getTime()) ||
+            localDateString(date) !== value
+        ) {
+            throw new Error(
+                `Please select a valid ${label} date.`
+            );
+        }
+
+        return date;
+    }
+
+    function getReportingPeriod() {
+        const type = $("periodType").value;
+
+        if (type === "custom") {
+            const from = parseDateInput("customFrom", "From");
+            const to = parseDateInput("customTo", "To");
+
+            if (to < from) {
+                throw new Error(
+                    "To date cannot be earlier than From date."
+                );
+            }
+
+            return { from, to };
+        }
+
+        const selectedDate = parseDateInput(
+            "periodDate",
+            "Reporting period"
+        );
+
         if (type === "month") {
             return {
-                from: startOfMonth(
-                    selectedDate
-                ),
-                to: endOfMonth(
-                    selectedDate
-                )
+                from: startOfMonth(selectedDate),
+                to: endOfMonth(selectedDate)
             };
         }
 
         if (type === "quarter") {
             return {
-                from: startOfQuarter(
-                    selectedDate
-                ),
-                to: endOfQuarter(
-                    selectedDate
-                )
+                from: startOfQuarter(selectedDate),
+                to: endOfQuarter(selectedDate)
             };
         }
 
         if (type === "year") {
             return {
-                from: startOfYear(
-                    selectedDate
-                ),
-                to: endOfYear(
-                    selectedDate
-                )
+                from: startOfYear(selectedDate),
+                to: endOfYear(selectedDate)
             };
         }
 
-        const customFrom =
-            new Date(
-                `${$("customFrom").value}T00:00:00`
-            );
-
-        const customTo =
-            new Date(
-                `${$("customTo").value}T00:00:00`
-            );
-
-        if (
-            Number.isNaN(
-                customFrom.getTime()
-            ) ||
-            Number.isNaN(
-                customTo.getTime()
-            )
-        ) {
-            throw new Error(
-                "Please select both custom dates."
-            );
-        }
-
-        if (customTo < customFrom) {
-            throw new Error(
-                "Custom To date cannot be earlier than From date."
-            );
-        }
-
-        return {
-            from: customFrom,
-            to: customTo
-        };
+        throw new Error("Please select a valid reporting period.");
     }
 
     async function loadCollection(
@@ -491,9 +472,61 @@
             );
     }
 
+    function clearReportOutput() {
+        const outputIds = [
+            "revenue",
+            "expenses",
+            "utilities",
+            "netProfit",
+            "profitMargin",
+            "occupancy",
+            "confirmedBookings",
+            "bookedNights",
+            "calendarNights",
+            "profitPerNight",
+            "totalGuests",
+            "guestNights",
+            "revenuePerGuest",
+            "revenuePerGuestNight",
+            "accommodationRevenue",
+            "extraGuestRevenue",
+            "cleaningRevenue"
+        ];
+
+        outputIds.forEach(id => {
+            const element = $(id);
+            if (element) {
+                element.textContent = "—";
+            }
+        });
+
+        [
+            "bookingProfitabilityBody",
+            "expenseBreakdownBody",
+            "utilityBreakdownBody"
+        ].forEach(id => {
+            const element = $(id);
+            if (element) {
+                element.innerHTML = "";
+            }
+        });
+
+        [
+            "expenseEmpty",
+            "utilityEmpty"
+        ].forEach(id => {
+            const element = $(id);
+            if (element) {
+                element.style.display = "none";
+            }
+        });
+    }
+
     async function refresh() {
         const statusMessage =
             $("statusMessage");
+
+        clearReportOutput();
 
         clearMessage(statusMessage);
 
@@ -510,7 +543,7 @@
             } =
                 getReportingPeriod();
 
-            const [
+            let [
                 bookings,
                 expenses,
                 utilityBills
@@ -525,6 +558,8 @@
                     "utilityBills"
                 )
             ]);
+            bookings = AccountsProfitabilityUtils.filterProfitabilityBookings(bookings);
+            expenses = AccountsProfitabilityUtils.filterProfitabilityExpenses(expenses);
 
             const result =
                 AccountsProfitabilityUtils
@@ -588,6 +623,8 @@
                 error
             );
 
+            clearReportOutput();
+
             showMessage(
                 statusMessage,
                 error.message ||
@@ -597,6 +634,15 @@
         }
     }
 
+    function updatePeriodControlVisibility() {
+        const isCustom =
+            $("periodType").value === "custom";
+
+        $("periodDateContainer").hidden = isCustom;
+        $("customFromContainer").hidden = !isCustom;
+        $("customToContainer").hidden = !isCustom;
+    }
+
     function initialisePeriodControls() {
         const today = new Date();
 
@@ -604,43 +650,22 @@
             localDateString(today);
 
         $("customFrom").value =
-            localDateString(
-                startOfMonth(today)
-            );
+            localDateString(startOfMonth(today));
 
         $("customTo").value =
-            localDateString(
-                endOfMonth(today)
-            );
+            localDateString(endOfMonth(today));
 
-        $("periodType")
-            .addEventListener(
-                "change",
-                () => {
-                    const custom =
-                        $("periodType")
-                            .value ===
-                        "custom";
+        updatePeriodControlVisibility();
 
-                    $("customFromContainer")
-                        .classList.toggle(
-                            "visible",
-                            custom
-                        );
+        $("periodType").addEventListener(
+            "change",
+            updatePeriodControlVisibility
+        );
 
-                    $("customToContainer")
-                        .classList.toggle(
-                            "visible",
-                            custom
-                        );
-                }
-            );
-
-        $("applyPeriod")
-            .addEventListener(
-                "click",
-                refresh
-            );
+        $("applyPeriod").addEventListener(
+            "click",
+            refresh
+        );
     }
 
     document.addEventListener(
