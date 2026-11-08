@@ -45,6 +45,35 @@
         currencyElement.dataset.previousCurrency = currency;
     }
 
+
+function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr) {
+    const total = Number(totalLkr);
+    const depositPaid = Number(depositPaidLkr);
+    const balancePaid = Number(balancePaidLkr);
+
+    const validTotal = Number.isFinite(total) && total > 0 ? total : 0;
+    const validDepositPaid =
+        Number.isFinite(depositPaid) && depositPaid > 0 ? depositPaid : 0;
+    const validBalancePaid =
+        Number.isFinite(balancePaid) && balancePaid > 0 ? balancePaid : 0;
+    const totalReceived = validDepositPaid + validBalancePaid;
+
+    // Treat a difference of up to one cent as settled to avoid floating-point residue.
+    if (validTotal > 0 && totalReceived >= validTotal - 0.01) {
+        return "Paid";
+    }
+
+    if (validBalancePaid > 0) {
+        return "Balance Due";
+    }
+
+    if (validDepositPaid > 0) {
+        return "Deposit Paid";
+    }
+
+    return "Deposit Required";
+}
+
 (function () {
     "use strict";
 
@@ -107,6 +136,32 @@
     };
 
     const getPaymentStatus = (booking) => {
+        const hasActualPaymentData =
+            hasActualPaymentAmounts(booking, "deposit") ||
+            hasActualPaymentAmounts(booking, "balance");
+
+        if (hasActualPaymentData) {
+            const totalLkr = getTotalLkr(booking);
+            const depositPaidLkr = getDepositPaidLkr(booking);
+            const balancePaidLkr = getBalancePaidLkr(booking);
+            const outstandingLkr =
+                totalLkr - depositPaidLkr - balancePaidLkr;
+
+            if (
+                booking.balancePaymentStatus === "Balance Due" &&
+                outstandingLkr > 0.01
+            ) {
+                return "Balance Due";
+            }
+
+            return calculateOverallPaymentStatus(
+                totalLkr,
+                depositPaidLkr,
+                balancePaidLkr
+            );
+        }
+
+        // Preserve the established classification for legacy bookings without actual payment amounts.
         if (
             booking.paymentStatus === "Paid" ||
             booking.balancePaymentStatus === "Paid" ||
@@ -115,15 +170,11 @@
             return "Paid";
         }
 
-        if (
-            booking.balancePaymentStatus === "Balance Due"
-        ) {
+        if (booking.balancePaymentStatus === "Balance Due") {
             return "Balance Due";
         }
 
-        if (
-            booking.paymentStatus === "Deposit Paid"
-        ) {
+        if (booking.paymentStatus === "Deposit Paid") {
             return "Deposit Paid";
         }
 
@@ -197,6 +248,60 @@
             : null;
     };
 
+    const hasActualPaymentAmounts = (booking, paymentPrefix) => {
+        return (
+            Object.prototype.hasOwnProperty.call(
+                booking,
+                `${paymentPrefix}PaymentAmount`
+            ) ||
+            Object.prototype.hasOwnProperty.call(
+                booking,
+                `${paymentPrefix}PaymentAmountLkr`
+            )
+        );
+    };
+
+    const getActualPaymentAmountLkr = (booking, paymentPrefix) => {
+        if (!hasActualPaymentAmounts(booking, paymentPrefix)) {
+            return null;
+        }
+
+        if (booking[`${paymentPrefix}PaymentStatus`] !== "Paid") {
+            return 0;
+        }
+
+        const storedAmountLkr = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmountLkr`]
+        );
+        if (storedAmountLkr !== null) {
+            return storedAmountLkr;
+        }
+
+        const amount = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmount`]
+        );
+        if (amount === null) {
+            return 0;
+        }
+
+        const currency = String(
+            booking[`${paymentPrefix}PaymentCurrency`] || ""
+        ).toUpperCase();
+        if (currency === "LKR") {
+            return amount;
+        }
+
+        const exchangeRate = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentExchangeRateToLkr`]
+        );
+
+        if (exchangeRate === null || exchangeRate <= 0) {
+            return 0;
+        }
+
+        return calculateLkrEquivalent(amount, exchangeRate) || 0;
+    };
+
     const getDepositPaid = (booking) => {
         const actualPayment = getActualPaymentInBookingCurrency(
             booking,
@@ -204,6 +309,10 @@
         );
         if (actualPayment !== null) {
             return actualPayment;
+        }
+
+        if (hasActualPaymentAmounts(booking, "deposit")) {
+            return 0;
         }
 
         if (booking.depositPaid === true) {
@@ -220,6 +329,10 @@
         );
         if (actualPayment !== null) {
             return actualPayment;
+        }
+
+        if (hasActualPaymentAmounts(booking, "balance")) {
+            return 0;
         }
 
         if (
@@ -244,13 +357,12 @@
     };
 
     const getDepositPaidLkr = (booking) => {
-        if (
-            booking.depositPaymentStatus === "Paid" &&
-            parseFiniteNonNegativeNumber(booking.depositPaymentAmountLkr) > 0
-        ) {
-            return parseFiniteNonNegativeNumber(
-                booking.depositPaymentAmountLkr
-            );
+        const actualPayment = getActualPaymentAmountLkr(
+            booking,
+            "deposit"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
         }
 
         if (
@@ -268,13 +380,12 @@
     };
 
     const getBalancePaidLkr = (booking) => {
-        if (
-            booking.balancePaymentStatus === "Paid" &&
-            parseFiniteNonNegativeNumber(booking.balancePaymentAmountLkr) > 0
-        ) {
-            return parseFiniteNonNegativeNumber(
-                booking.balancePaymentAmountLkr
-            );
+        const actualPayment = getActualPaymentAmountLkr(
+            booking,
+            "balance"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
         }
 
         if (
@@ -1720,14 +1831,11 @@ updateAdminTotalGuests();
                 balanceGracePeriodHours:
                     Number(CONFIG.payment.balanceGracePeriodHours) || 48,
 
-                paymentStatus:
-                    depositPaymentStatus === "Paid" && balancePaymentStatus === "Paid"
-                        ? "Paid"
-                        : depositPaymentStatus === "Paid"
-                            ? "Deposit Paid"
-                            : balancePaymentStatus === "Paid"
-                                ? "Balance Due"
-                                : "Deposit Required",
+                paymentStatus: calculateOverallPaymentStatus(
+                    totalLkr,
+                    depositPaymentStatus === "Paid" ? depositPaymentAmountLkr : 0,
+                    balancePaymentStatus === "Paid" ? balancePaymentAmountLkr : 0
+                ),
 
                 depositPaid: depositPaymentStatus === "Paid",
                 balancePaid: balancePaymentStatus === "Paid",
