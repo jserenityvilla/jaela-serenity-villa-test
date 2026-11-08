@@ -4,6 +4,6 @@
     "playwright": "^1.63.0"
   },
   "scripts": {
-    "test:profitability": "node --test tests/accounts-profitability-utils.test.js"
+    "test:profitability": "node --test tests/accounts-profitability-utils.test.js tests/accounts-profitability-exclusions.test.js"
   }
 }
