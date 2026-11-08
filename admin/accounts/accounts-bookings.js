@@ -136,16 +136,11 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
     };
 
     const getPaymentStatus = (booking) => {
-        const hasActualPaymentAmounts = [
-            "depositPaymentAmount",
-            "depositPaymentAmountLkr",
-            "balancePaymentAmount",
-            "balancePaymentAmountLkr"
-        ].some(field =>
-            Object.prototype.hasOwnProperty.call(booking, field)
-        );
+        const hasActualPaymentData =
+            hasActualPaymentAmounts(booking, "deposit") ||
+            hasActualPaymentAmounts(booking, "balance");
 
-        if (hasActualPaymentAmounts) {
+        if (hasActualPaymentData) {
             return calculateOverallPaymentStatus(
                 getTotalLkr(booking),
                 getDepositPaidLkr(booking),
@@ -240,6 +235,60 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
             : null;
     };
 
+    const hasActualPaymentAmounts = (booking, paymentPrefix) => {
+        return (
+            Object.prototype.hasOwnProperty.call(
+                booking,
+                `${paymentPrefix}PaymentAmount`
+            ) ||
+            Object.prototype.hasOwnProperty.call(
+                booking,
+                `${paymentPrefix}PaymentAmountLkr`
+            )
+        );
+    };
+
+    const getActualPaymentAmountLkr = (booking, paymentPrefix) => {
+        if (!hasActualPaymentAmounts(booking, paymentPrefix)) {
+            return null;
+        }
+
+        if (booking[`${paymentPrefix}PaymentStatus`] !== "Paid") {
+            return 0;
+        }
+
+        const storedAmountLkr = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmountLkr`]
+        );
+        if (storedAmountLkr !== null) {
+            return storedAmountLkr;
+        }
+
+        const amount = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmount`]
+        );
+        if (amount === null) {
+            return 0;
+        }
+
+        const currency = String(
+            booking[`${paymentPrefix}PaymentCurrency`] || ""
+        ).toUpperCase();
+        if (currency === "LKR") {
+            return amount;
+        }
+
+        const exchangeRate = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentExchangeRateToLkr`]
+        );
+
+        if (exchangeRate === null || exchangeRate <= 0) {
+            return 0;
+        }
+
+        return calculateLkrEquivalent(amount, exchangeRate) || 0;
+    };
+
     const getDepositPaid = (booking) => {
         const actualPayment = getActualPaymentInBookingCurrency(
             booking,
@@ -247,6 +296,10 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
         );
         if (actualPayment !== null) {
             return actualPayment;
+        }
+
+        if (hasActualPaymentAmounts(booking, "deposit")) {
+            return 0;
         }
 
         if (booking.depositPaid === true) {
@@ -263,6 +316,10 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
         );
         if (actualPayment !== null) {
             return actualPayment;
+        }
+
+        if (hasActualPaymentAmounts(booking, "balance")) {
+            return 0;
         }
 
         if (
@@ -287,13 +344,12 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
     };
 
     const getDepositPaidLkr = (booking) => {
-        if (
-            booking.depositPaymentStatus === "Paid" &&
-            parseFiniteNonNegativeNumber(booking.depositPaymentAmountLkr) > 0
-        ) {
-            return parseFiniteNonNegativeNumber(
-                booking.depositPaymentAmountLkr
-            );
+        const actualPayment = getActualPaymentAmountLkr(
+            booking,
+            "deposit"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
         }
 
         if (
@@ -311,13 +367,12 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
     };
 
     const getBalancePaidLkr = (booking) => {
-        if (
-            booking.balancePaymentStatus === "Paid" &&
-            parseFiniteNonNegativeNumber(booking.balancePaymentAmountLkr) > 0
-        ) {
-            return parseFiniteNonNegativeNumber(
-                booking.balancePaymentAmountLkr
-            );
+        const actualPayment = getActualPaymentAmountLkr(
+            booking,
+            "balance"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
         }
 
         if (
