@@ -141,10 +141,23 @@ function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr)
             hasActualPaymentAmounts(booking, "balance");
 
         if (hasActualPaymentData) {
+            const totalLkr = getTotalLkr(booking);
+            const depositPaidLkr = getDepositPaidLkr(booking);
+            const balancePaidLkr = getBalancePaidLkr(booking);
+            const outstandingLkr =
+                totalLkr - depositPaidLkr - balancePaidLkr;
+
+            if (
+                booking.balancePaymentStatus === "Balance Due" &&
+                outstandingLkr > 0.01
+            ) {
+                return "Balance Due";
+            }
+
             return calculateOverallPaymentStatus(
-                getTotalLkr(booking),
-                getDepositPaidLkr(booking),
-                getBalancePaidLkr(booking)
+                totalLkr,
+                depositPaidLkr,
+                balancePaidLkr
             );
         }
 
