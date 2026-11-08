@@ -823,99 +823,108 @@
         let balancesReceived = 0;
         let outstanding = 0;
 
-        bookings.forEach(
-            booking => {
-                const currency =
-                    String(
-                        booking.currency || "AUD"
-                    ).toUpperCase();
+        const getActualPaymentAmountLkr = (booking, paymentPrefix) => {
+            const amountField = `${paymentPrefix}PaymentAmount`;
+            const amountLkrField = `${paymentPrefix}PaymentAmountLkr`;
+            const hasActualPaymentFields =
+                Object.prototype.hasOwnProperty.call(booking, amountField) ||
+                Object.prototype.hasOwnProperty.call(booking, amountLkrField);
 
-                const exchangeRate =
-                    currency === "LKR"
-                        ? 1
-                        : Number(
-                            booking.exchangeRateToLkr
-                        ) || 0;
-
-                const depositAmount =
-                    Number(
-                        booking.depositAmount
-                    ) || 0;
-
-                const balanceAmount =
-                    Number(
-                        booking.balanceAmount
-                    ) || 0;
-
-                const depositAmountLkr =
-                    booking.depositAmountLkr !== undefined
-                        ? Number(
-                            booking.depositAmountLkr
-                        ) || 0
-                        : depositAmount * exchangeRate;
-
-                const balanceAmountLkr =
-                    booking.balanceAmountLkr !== undefined
-                        ? Number(
-                            booking.balanceAmountLkr
-                        ) || 0
-                        : balanceAmount * exchangeRate;
-
-                const depositPaid =
-                    booking.depositPaid === true ||
-                    booking.paymentStatus === "Deposit Paid" ||
-                    booking.paymentStatus === "Balance Due" ||
-                    booking.paymentStatus === "Paid";
-
-                const balancePaid =
-                    booking.balancePaid === true ||
-                    booking.balancePaymentStatus === "Paid" ||
-                    booking.paymentStatus === "Paid";
-
-                if (depositPaid) {
-                    depositsReceived +=
-                        depositAmountLkr;
-                }
-
-                if (balancePaid) {
-                    balancesReceived +=
-                        balanceAmountLkr;
-                }
-
-                const totalLkr =
-                    booking.totalLkr !== undefined
-                        ? Number(
-                            booking.totalLkr
-                        ) || 0
-                        : (
-                            Number(
-                                booking.total
-                            ) || 0
-                        ) * exchangeRate;
-
-                outstanding += Math.max(
-                    0,
-                    totalLkr -
-                    (
-                        depositPaid
-                            ? depositAmountLkr
-                            : 0
-                    ) -
-                    (
-                        balancePaid
-                            ? balanceAmountLkr
-                            : 0
-                    )
-                );
+            if (!hasActualPaymentFields) {
+                return null;
             }
-        );
+
+            if (booking[`${paymentPrefix}PaymentStatus`] !== "Paid") {
+                return 0;
+            }
+
+            const storedAmountLkr = Number(booking[amountLkrField]);
+            if (
+                Number.isFinite(storedAmountLkr) &&
+                storedAmountLkr > 0
+            ) {
+                return storedAmountLkr;
+            }
+
+            const amount = Number(booking[amountField]) || 0;
+            const paymentCurrency = String(
+                booking[`${paymentPrefix}PaymentCurrency`] || ""
+            ).toUpperCase();
+            const paymentExchangeRate = paymentCurrency === "LKR"
+                ? 1
+                : Number(booking[`${paymentPrefix}PaymentExchangeRateToLkr`]) || 0;
+
+            return amount > 0 && paymentExchangeRate > 0
+                ? amount * paymentExchangeRate
+                : 0;
+        };
+
+        bookings.forEach(booking => {
+            const currency =
+                String(booking.currency || "AUD").toUpperCase();
+
+            const exchangeRate = currency === "LKR"
+                ? 1
+                : Number(booking.exchangeRateToLkr) || 0;
+
+            const depositAmount =
+                Number(booking.depositAmount) || 0;
+
+            const balanceAmount =
+                Number(booking.balanceAmount) || 0;
+
+            const depositAmountLkr =
+                booking.depositAmountLkr !== undefined
+                    ? Number(booking.depositAmountLkr) || 0
+                    : depositAmount * exchangeRate;
+
+            const balanceAmountLkr =
+                booking.balanceAmountLkr !== undefined
+                    ? Number(booking.balanceAmountLkr) || 0
+                    : balanceAmount * exchangeRate;
+
+            const legacyDepositPaid =
+                booking.depositPaid === true ||
+                booking.paymentStatus === "Deposit Paid" ||
+                booking.paymentStatus === "Balance Due" ||
+                booking.paymentStatus === "Paid";
+
+            const legacyBalancePaid =
+                booking.balancePaid === true ||
+                booking.balancePaymentStatus === "Paid" ||
+                booking.paymentStatus === "Paid";
+
+            const actualDepositPaidLkr =
+                getActualPaymentAmountLkr(booking, "deposit");
+            const actualBalancePaidLkr =
+                getActualPaymentAmountLkr(booking, "balance");
+
+            const depositReceivedLkr = actualDepositPaidLkr !== null
+                ? actualDepositPaidLkr
+                : legacyDepositPaid ? depositAmountLkr : 0;
+
+            const balanceReceivedLkr = actualBalancePaidLkr !== null
+                ? actualBalancePaidLkr
+                : legacyBalancePaid ? balanceAmountLkr : 0;
+
+            depositsReceived += depositReceivedLkr;
+            balancesReceived += balanceReceivedLkr;
+
+            const totalLkr =
+                booking.totalLkr !== undefined
+                    ? Number(booking.totalLkr) || 0
+                    : (Number(booking.total) || 0) * exchangeRate;
+
+            outstanding += Math.max(
+                0,
+                totalLkr - depositReceivedLkr - balanceReceivedLkr
+            );
+        });
 
         return {
             depositsReceived,
             balancesReceived,
-            totalReceived:
-                depositsReceived +
-                balancesReceived,
+            totalReceived: depositsReceived + balancesReceived,
             outstanding
         };
     }
