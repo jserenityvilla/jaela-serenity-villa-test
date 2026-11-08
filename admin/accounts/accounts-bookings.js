@@ -45,6 +45,35 @@
         currencyElement.dataset.previousCurrency = currency;
     }
 
+
+function calculateOverallPaymentStatus(totalLkr, depositPaidLkr, balancePaidLkr) {
+    const total = Number(totalLkr);
+    const depositPaid = Number(depositPaidLkr);
+    const balancePaid = Number(balancePaidLkr);
+
+    const validTotal = Number.isFinite(total) && total > 0 ? total : 0;
+    const validDepositPaid =
+        Number.isFinite(depositPaid) && depositPaid > 0 ? depositPaid : 0;
+    const validBalancePaid =
+        Number.isFinite(balancePaid) && balancePaid > 0 ? balancePaid : 0;
+    const totalReceived = validDepositPaid + validBalancePaid;
+
+    // Treat a difference of up to one cent as settled to avoid floating-point residue.
+    if (validTotal > 0 && totalReceived >= validTotal - 0.01) {
+        return "Paid";
+    }
+
+    if (validBalancePaid > 0) {
+        return "Balance Due";
+    }
+
+    if (validDepositPaid > 0) {
+        return "Deposit Paid";
+    }
+
+    return "Deposit Required";
+}
+
 (function () {
     "use strict";
 
@@ -107,6 +136,24 @@
     };
 
     const getPaymentStatus = (booking) => {
+        const hasActualPaymentAmounts = [
+            "depositPaymentAmount",
+            "depositPaymentAmountLkr",
+            "balancePaymentAmount",
+            "balancePaymentAmountLkr"
+        ].some(field =>
+            Object.prototype.hasOwnProperty.call(booking, field)
+        );
+
+        if (hasActualPaymentAmounts) {
+            return calculateOverallPaymentStatus(
+                getTotalLkr(booking),
+                getDepositPaidLkr(booking),
+                getBalancePaidLkr(booking)
+            );
+        }
+
+        // Preserve the established classification for legacy bookings without actual payment amounts.
         if (
             booking.paymentStatus === "Paid" ||
             booking.balancePaymentStatus === "Paid" ||
@@ -115,15 +162,11 @@
             return "Paid";
         }
 
-        if (
-            booking.balancePaymentStatus === "Balance Due"
-        ) {
+        if (booking.balancePaymentStatus === "Balance Due") {
             return "Balance Due";
         }
 
-        if (
-            booking.paymentStatus === "Deposit Paid"
-        ) {
+        if (booking.paymentStatus === "Deposit Paid") {
             return "Deposit Paid";
         }
 
@@ -1720,14 +1763,11 @@ updateAdminTotalGuests();
                 balanceGracePeriodHours:
                     Number(CONFIG.payment.balanceGracePeriodHours) || 48,
 
-                paymentStatus:
-                    depositPaymentStatus === "Paid" && balancePaymentStatus === "Paid"
-                        ? "Paid"
-                        : depositPaymentStatus === "Paid"
-                            ? "Deposit Paid"
-                            : balancePaymentStatus === "Paid"
-                                ? "Balance Due"
-                                : "Deposit Required",
+                paymentStatus: calculateOverallPaymentStatus(
+                    totalLkr,
+                    depositPaymentStatus === "Paid" ? depositPaymentAmountLkr : 0,
+                    balancePaymentStatus === "Paid" ? balancePaymentAmountLkr : 0
+                ),
 
                 depositPaid: depositPaymentStatus === "Paid",
                 balancePaid: balancePaymentStatus === "Paid",
