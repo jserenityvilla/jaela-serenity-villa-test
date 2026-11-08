@@ -226,3 +226,88 @@ test("dashboard retains scheduled-value fallback for legacy bookings", () => {
         }
     );
 });
+
+test("actual Not Paid fields do not fall back to scheduled payment amounts", () => {
+    const helperSource = bookingsSource.slice(
+        bookingsSource.indexOf("const hasActualPaymentAmounts ="),
+        bookingsSource.indexOf("const getTotalLkr =")
+    );
+    const extracted = new Function(
+        "parseFiniteNonNegativeNumber",
+        "calculateLkrEquivalent",
+        "number",
+        "getActualPaymentInBookingCurrency",
+        `${helperSource}; return { getDepositPaid, getBalancePaid, getDepositPaidLkr, getBalancePaidLkr };`
+    )(
+        value => {
+            if (value === null || value === undefined || String(value).trim() === "") return null;
+            const parsed = Number(value);
+            return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+        },
+        (amount, rate) => amount * rate,
+        value => Number(value) || 0,
+        () => null
+    );
+
+    const booking = {
+        depositPaid: true,
+        balancePaid: true,
+        depositAmount: 30,
+        balanceAmount: 70,
+        depositAmountLkr: 6750,
+        balanceAmountLkr: 15750,
+        depositPaymentStatus: "Not Paid",
+        depositPaymentAmount: 0,
+        depositPaymentAmountLkr: 0,
+        balancePaymentStatus: "Not Paid",
+        balancePaymentAmount: 0,
+        balancePaymentAmountLkr: 0
+    };
+
+    assert.equal(helperSource.includes("const getDepositPaid ="), true);
+    assert.equal(extracted.getDepositPaid(booking), 0);
+    assert.equal(extracted.getBalancePaid(booking), 0);
+    assert.equal(extracted.getDepositPaidLkr(booking), 0);
+    assert.equal(extracted.getBalancePaidLkr(booking), 0);
+});
+
+test("actual paid LKR amount is authoritative even when scheduled amount is larger", () => {
+    const helperSource = bookingsSource.slice(
+        bookingsSource.indexOf("const hasActualPaymentAmounts ="),
+        bookingsSource.indexOf("const getTotalLkr =")
+    );
+    const extracted = new Function(
+        "parseFiniteNonNegativeNumber",
+        "calculateLkrEquivalent",
+        "number",
+        "getActualPaymentInBookingCurrency",
+        `${helperSource}; return { getDepositPaidLkr, getBalancePaidLkr };`
+    )(
+        value => {
+            if (value === null || value === undefined || String(value).trim() === "") return null;
+            const parsed = Number(value);
+            return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+        },
+        (amount, rate) => amount * rate,
+        value => Number(value) || 0,
+        () => null
+    );
+
+    const booking = {
+        depositPaid: true,
+        balancePaid: true,
+        depositAmountLkr: 8100,
+        balanceAmountLkr: 18900,
+        depositPaymentStatus: "Paid",
+        depositPaymentAmount: 5000,
+        depositPaymentCurrency: "LKR",
+        depositPaymentAmountLkr: 5000,
+        balancePaymentStatus: "Paid",
+        balancePaymentAmount: 10000,
+        balancePaymentCurrency: "LKR",
+        balancePaymentAmountLkr: 10000
+    };
+
+    assert.equal(extracted.getDepositPaidLkr(booking), 5000);
+    assert.equal(extracted.getBalancePaidLkr(booking), 10000);
+});
