@@ -76,6 +76,10 @@
             font-weight: 600;
         }
 
+        .period-control[hidden] {
+            display: none !important;
+        }
+
         .profitability-toolbar select,
         .profitability-toolbar input,
         .profitability-toolbar button {
@@ -108,7 +112,10 @@
     </style>
 </head>
 
-<body data-admin-login-path="../login.html" style="visibility:hidden;">
+<body
+    data-admin-login-path="../login.html"
+    style="visibility:hidden;"
+>
     <div class="profitability-page">
 
         <h1>Profitability</h1>
@@ -141,7 +148,7 @@
                 </select>
             </div>
 
-            <div>
+            <div id="periodDateContainer" class="period-control">
                 <label
                     class="profit-toolbar-label"
                     for="periodDate"
@@ -155,7 +162,7 @@
                 >
             </div>
 
-            <div id="customFromContainer">
+            <div id="customFromContainer" class="period-control" hidden>
                 <label
                     class="profit-toolbar-label"
                     for="customFrom"
@@ -169,7 +176,7 @@
                 >
             </div>
 
-            <div id="customToContainer">
+            <div id="customToContainer" class="period-control" hidden>
                 <label
                     class="profit-toolbar-label"
                     for="customTo"
@@ -184,7 +191,7 @@
             </div>
 
             <div>
-                <button id="applyPeriod">
+                <button id="applyPeriod" type="button">
                     Apply
                 </button>
             </div>
