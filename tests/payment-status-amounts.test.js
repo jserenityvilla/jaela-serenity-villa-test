@@ -393,3 +393,42 @@ test("legacy booking without actual payment amount fields keeps its stored statu
         "Paid"
     );
 });
+
+test("explicit Balance Due payment state remains Balance Due while money is outstanding", () => {
+    const statusStart = bookingsSource.indexOf("const getPaymentStatus =");
+    const statusEnd = bookingsSource.indexOf(
+        "const getActualPaymentInBookingCurrency =",
+        statusStart
+    );
+    const statusSource = bookingsSource.slice(statusStart, statusEnd);
+    const helpers = new Function(
+        "calculateOverallPaymentStatus",
+        "hasActualPaymentAmounts",
+        "getTotalLkr",
+        "getDepositPaidLkr",
+        "getBalancePaidLkr",
+        `${statusSource}; return getPaymentStatus;`
+    )(
+        calculateOverallPaymentStatus,
+        (booking, prefix) =>
+            Object.prototype.hasOwnProperty.call(booking, `${prefix}PaymentAmount`) ||
+            Object.prototype.hasOwnProperty.call(booking, `${prefix}PaymentAmountLkr`),
+        booking => Number(booking.totalLkr) || 0,
+        booking => booking.depositPaymentStatus === "Paid" ? Number(booking.depositPaymentAmountLkr) || 0 : 0,
+        booking => booking.balancePaymentStatus === "Paid" ? Number(booking.balancePaymentAmountLkr) || 0 : 0
+    );
+
+    assert.equal(
+        helpers({
+            paymentStatus: "Deposit Paid",
+            totalLkr: 27000,
+            depositPaymentStatus: "Paid",
+            depositPaymentAmount: 5000,
+            depositPaymentAmountLkr: 5000,
+            balancePaymentStatus: "Balance Due",
+            balancePaymentAmount: 0,
+            balancePaymentAmountLkr: 0
+        }),
+        "Balance Due"
+    );
+});
