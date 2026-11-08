@@ -1,16 +1,3 @@
-(function () {
-    "use strict";
-
-    let db = null;
-    let allBookings = [];
-
-    const money = (value, currency = "AUD") => {
-        const amount = Number(value) || 0;
-        return `${currency} ${amount.toFixed(2)}`;
-    };
-
-    const number = (value) => Number(value) || 0;
-
     // Default reference rates for new bookings. Rates remain editable for AUD and USD.
     const DEFAULT_EXCHANGE_RATES_TO_LKR = Object.freeze({
         AUD: 225,
@@ -57,6 +44,19 @@
 
         currencyElement.dataset.previousCurrency = currency;
     }
+
+(function () {
+    "use strict";
+
+    let db = null;
+    let allBookings = [];
+
+    const money = (value, currency = "AUD") => {
+        const amount = Number(value) || 0;
+        return `${currency} ${amount.toFixed(2)}`;
+    };
+
+    const number = (value) => Number(value) || 0;
 
     const parseFiniteNonNegativeNumber = (value) => {
         if (typeof value !== "number" && typeof value !== "string") {
