@@ -354,14 +354,73 @@
                 (totals[allocationMethod] || 0) + amount;
         }
 
+        function calendarDayNumber(value) {
+            return Date.UTC(
+                value.getFullYear(),
+                value.getMonth(),
+                value.getDate()
+            ) / 86400000;
+        }
+
         utilityBills
             .filter(bill => (bill.status || ACTIVE) === ACTIVE)
             .forEach(bill => {
                 const allocationMethod =
                     String(bill.allocationMethod || "None").trim();
 
-                // Property-level utility: recognise using the bill date.
+                // Property-level utility: recognise across the billing period.
                 if (allocationMethod === "None") {
+                    const billingStart = parseDate(bill.billingPeriodFrom);
+                    const billingEnd = parseDate(bill.billingPeriodTo);
+                    const hasBillingPeriod =
+                        Boolean(bill.billingPeriodFrom || bill.billingPeriodTo);
+
+                    if (hasBillingPeriod) {
+                        if (
+                            !billingStart ||
+                            !billingEnd ||
+                            billingEnd < billingStart
+                        ) {
+                            return;
+                        }
+
+                        const allocationStart = maxDate(
+                            billingStart,
+                            reportingStart
+                        );
+
+                        const allocationEnd = minDate(
+                            billingEnd,
+                            reportingEnd
+                        );
+
+                        if (allocationEnd < allocationStart) {
+                            return;
+                        }
+
+                        const billingDays =
+                            calendarDayNumber(billingEnd) -
+                            calendarDayNumber(billingStart) + 1;
+
+                        const reportingDays =
+                            calendarDayNumber(allocationEnd) -
+                            calendarDayNumber(allocationStart) + 1;
+
+                        if (billingDays > 0 && reportingDays > 0) {
+                            add(
+                                allocationMethod,
+                                Number((
+                                    getRecordLkrAmount(bill, "Utility bill") *
+                                    reportingDays /
+                                    billingDays
+                                ).toFixed(2))
+                            );
+                        }
+
+                        return;
+                    }
+
+                    // Backward compatibility for records without billing dates.
                     if (isDateWithinPeriod(
                         bill.billDate,
                         periodFrom,
@@ -372,6 +431,7 @@
                             getRecordLkrAmount(bill, "Utility bill")
                         );
                     }
+
                     return;
                 }
 
@@ -538,7 +598,12 @@
         const confirmedBookings =
             bookings.filter(
                 booking =>
-                    booking.status === CONFIRMED
+                    booking.status === CONFIRMED &&
+                    bookingOverlapNights(
+                        booking,
+                        periodFrom,
+                        periodTo
+                    ) > 0
             );
 
         const guestCount =
@@ -586,6 +651,22 @@
         };
     }
 
+    function filterProfitabilityBookings(bookings = []) {
+        return bookings.filter(
+            booking =>
+                booking &&
+                booking.excludeFromProfitability !== true
+        );
+    }
+
+    function filterProfitabilityExpenses(expenses = []) {
+        return expenses.filter(
+            expense =>
+                expense &&
+                expense.excludeFromProfitability !== true
+        );
+    }
+
     global.AccountsProfitabilityUtils = {
         bookingRevenue,
         revenueBreakdown,
@@ -599,7 +680,9 @@
         expenseTotal,
         utilityBreakdown,
         utilityTotal,
-        calculateProfitability
+        calculateProfitability,
+        filterProfitabilityBookings,
+        filterProfitabilityExpenses,
     };
 
 })(typeof window !== "undefined" ? window : globalThis);
