@@ -137,7 +137,75 @@
         return booking.paymentStatus || "Pending";
     };
 
+    const getActualPaymentInBookingCurrency = (booking, paymentPrefix) => {
+        const paymentStatus = booking[`${paymentPrefix}PaymentStatus`];
+        const paymentAmount = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmount`]
+        );
+        const paymentCurrency = booking[`${paymentPrefix}PaymentCurrency`];
+
+        if (
+            paymentStatus !== "Paid" ||
+            paymentAmount === null ||
+            paymentAmount <= 0 ||
+            !paymentCurrency
+        ) {
+            return null;
+        }
+
+        const bookingCurrency = booking.currency || "AUD";
+        if (paymentCurrency === bookingCurrency) {
+            return paymentAmount;
+        }
+
+        let paymentAmountLkr = parseFiniteNonNegativeNumber(
+            booking[`${paymentPrefix}PaymentAmountLkr`]
+        );
+
+        if (paymentAmountLkr === null) {
+            const paymentRate = parseFiniteNonNegativeNumber(
+                booking[`${paymentPrefix}PaymentExchangeRateToLkr`]
+            );
+            if (paymentRate === null || paymentRate <= 0) {
+                return null;
+            }
+            paymentAmountLkr = calculateLkrEquivalent(
+                paymentAmount,
+                paymentRate
+            );
+        }
+
+        if (paymentAmountLkr === null) {
+            return null;
+        }
+
+        if (bookingCurrency === "LKR") {
+            return paymentAmountLkr;
+        }
+
+        const bookingRate = parseFiniteNonNegativeNumber(
+            booking.exchangeRateToLkr
+        );
+        if (bookingRate === null || bookingRate <= 0) {
+            return null;
+        }
+
+        const amountInBookingCurrency = paymentAmountLkr / bookingRate;
+        return Number.isFinite(amountInBookingCurrency) &&
+            amountInBookingCurrency >= 0
+            ? amountInBookingCurrency
+            : null;
+    };
+
     const getDepositPaid = (booking) => {
+        const actualPayment = getActualPaymentInBookingCurrency(
+            booking,
+            "deposit"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
+        }
+
         if (booking.depositPaid === true) {
             return number(booking.depositAmount);
         }
@@ -146,6 +214,14 @@
     };
 
     const getBalancePaid = (booking) => {
+        const actualPayment = getActualPaymentInBookingCurrency(
+            booking,
+            "balance"
+        );
+        if (actualPayment !== null) {
+            return actualPayment;
+        }
+
         if (
             booking.balancePaid === true ||
             booking.balancePaymentStatus === "Paid"
@@ -1731,6 +1807,45 @@ updateAdminTotalGuests();
                     "addBalancePaymentCurrency",
                     "addBalancePaymentExchangeRate"
                 );
+
+                // Clear actual payment details so they cannot carry into the next booking.
+                [
+                    ["addDepositPaymentStatus", "Not Paid"],
+                    ["addBalancePaymentStatus", "Not Paid"]
+                ].forEach(([id, defaultValue]) => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = defaultValue;
+                    }
+                });
+
+                [
+                    ["addDepositPaymentCurrency", "addDepositPaymentExchangeRate"],
+                    ["addBalancePaymentCurrency", "addBalancePaymentExchangeRate"]
+                ].forEach(([currencyId, rateId]) => {
+                    const currencyElement = document.getElementById(currencyId);
+                    const rateElement = document.getElementById(rateId);
+                    if (currencyElement) {
+                        currencyElement.value = "";
+                        currencyElement.dataset.previousCurrency = "";
+                    }
+                    if (rateElement) {
+                        rateElement.value = "";
+                        rateElement.disabled = false;
+                    }
+                });
+
+                [
+                    "addDepositPaymentAmount",
+                    "addDepositPaymentDate",
+                    "addBalancePaymentAmount",
+                    "addBalancePaymentDate"
+                ].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = "";
+                    }
+                });
 
                 calculateAdminBookingPricing();
                 calculateAdminPaymentAmounts();
