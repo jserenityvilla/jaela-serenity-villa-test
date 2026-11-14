@@ -1186,6 +1186,19 @@ exports.checkBalancePaymentDeadlines = onSchedule(
 
 
           // ----------------------------------------------------
+          // Deposit must be paid before balance reminders or
+          // balance-payment cancellation can run.
+          // ----------------------------------------------------
+          if (booking.depositPaid !== true) {
+            console.log(
+                "Skipping balance deadline until deposit is paid:",
+                bookingId,
+            );
+            continue;
+          }
+
+
+          // ----------------------------------------------------
           // Check required check-in date
           // ----------------------------------------------------
 
@@ -1253,35 +1266,79 @@ exports.checkBalancePaymentDeadlines = onSchedule(
 
 
           // ----------------------------------------------------
-          // Calculate balance due time
+          // Calculate normal balance due time.
           // ----------------------------------------------------
-
-          const balanceDueTime =
-          new Date(
+          const scheduledBalanceDueTime = new Date(
               checkinDate.getTime() -
-            (
-              balanceDueHours *
-              60 *
-              60 *
-              1000
-            ),
+              balanceDueHours * 60 * 60 * 1000,
           );
 
+          // ----------------------------------------------------
+          // Identify bookings created after the normal due date.
+          // Support ISO strings and Firestore Timestamp values.
+          // ----------------------------------------------------
+          const createdAtValue = booking.createdAt;
+          const bookingCreatedAt =
+            createdAtValue && typeof createdAtValue.toDate === "function" ?
+              createdAtValue.toDate() :
+              new Date(createdAtValue);
 
-          // ----------------------------------------------------
-          // Calculate cancellation deadline
-          // ----------------------------------------------------
+          const hasValidCreatedAt =
+            createdAtValue !== undefined &&
+            createdAtValue !== null &&
+            !Number.isNaN(bookingCreatedAt.getTime());
+
+          if (!hasValidCreatedAt && now >= scheduledBalanceDueTime) {
+            console.warn(
+                "Skipping overdue booking with invalid createdAt:",
+                bookingId,
+            );
+            continue;
+          }
+
+          const shortNoticeBooking =
+            hasValidCreatedAt &&
+            bookingCreatedAt > scheduledBalanceDueTime;
+
+          // Standard bookings retain the configured balance due date.
+          // For short-notice bookings, the balance is due immediately
+          // after the deposit is paid and must be settled before check-in.
+          const balanceDueTime =
+            shortNoticeBooking ?
+              bookingCreatedAt :
+              scheduledBalanceDueTime;
+
+          // Standard bookings retain their grace period, capped at
+          // check-in. Short-notice bookings must pay before check-in.
+          const configuredCancellationTime = new Date(
+              balanceDueTime.getTime() +
+              gracePeriodHours * 60 * 60 * 1000,
+          );
 
           const cancellationTime =
-          new Date(
-              balanceDueTime.getTime() +
-            (
-              gracePeriodHours *
-              60 *
-              60 *
-              1000
-            ),
-          );
+            shortNoticeBooking ?
+              checkinDate :
+              new Date(Math.min(
+                  configuredCancellationTime.getTime(),
+                  checkinDate.getTime(),
+              ));
+
+          // Never run this cancellation workflow on or after check-in.
+          if (now >= checkinDate) {
+            console.log(
+                "Skipping balance deadline on/after check-in:",
+                bookingId,
+            );
+            continue;
+          }
+
+          const cancellationDeadlineText =
+            cancellationTime.toLocaleString("en-AU", {
+              timeZone: "Asia/Colombo",
+              dateStyle: "medium",
+              timeStyle: "short",
+            });
+
 
           console.log(
               "Balance booking evaluation:",
@@ -1295,6 +1352,10 @@ exports.checkBalancePaymentDeadlines = onSchedule(
                 cancellationTime: cancellationTime.toISOString(),
                 balanceDueHours,
                 gracePeriodHours,
+                shortNoticeBooking,
+                bookingCreatedAt: hasValidCreatedAt ?
+                  bookingCreatedAt.toISOString() : null,
+                cancellationDeadlineText,
                 balanceReminderSent: booking.balanceReminderSent,
                 balancePaid: booking.balancePaid,
                 balancePaymentStatus: booking.balancePaymentStatus,
@@ -1441,9 +1502,9 @@ exports.checkBalancePaymentDeadlines = onSchedule(
                   </p>
 
                   <p>
-                    Please complete the balance payment
-        within ${gracePeriodHours} hours to keep your reservation
-         confirmed.
+                    Please complete the remaining balance payment
+                    by ${cancellationDeadlineText} (Sri Lanka time)
+                    to keep your reservation confirmed.
                   </p>
 
                   <p>
@@ -1539,46 +1600,53 @@ exports.checkBalancePaymentDeadlines = onSchedule(
           );
 
             // -----------------------------------------------
-            // Cancel booking
+            // Recheck eligibility transactionally before cancelling.
             // -----------------------------------------------
+            const cancellationApplied =
+              await db.runTransaction(async (transaction) => {
+                const latestSnapshot = await transaction.get(bookingRef);
+                if (!latestSnapshot.exists) return false;
 
-            await bookingRef.update({
+                const latestBooking = latestSnapshot.data();
 
-              status:
-              "Cancelled",
+                if (
+                  latestBooking.status !== "Confirmed" ||
+                  latestBooking.depositPaid !== true ||
+                  latestBooking.balancePaid === true ||
+                  latestBooking.balancePaymentStatus === "Paid" ||
+                  latestBooking.paymentStatus === "Paid" ||
+                  latestBooking.balanceCancellationProcessed === true ||
+                  now < cancellationTime ||
+                  now >= checkinDate
+                ) {
+                  return false;
+                }
 
-              cancellationReason:
-              "Balance payment not received within grace period.",
+                transaction.update(bookingRef, {
+                  status: "Cancelled",
+                  cancellationReason:
+                    "Balance payment not received before check-in.",
+                  cancellationFee: cancellationFee,
+                  cancellationFeePercentage: cancellationFeePercentage,
+                  cancellationFeeRetained: true,
+                  cancelledAt:
+                    firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                  balancePaymentStatus: "Balance Payment Expired",
+                  balanceCancellationProcessed: true,
+                  balanceCancellationProcessedAt:
+                    firebaseAdmin.firestore.FieldValue.serverTimestamp(),
+                });
 
-              cancellationFee:
-              cancellationFee,
+                return true;
+              });
 
-              cancellationFeePercentage:
-              cancellationFeePercentage,
-
-              cancellationFeeRetained:
-              true,
-
-              cancelledAt:
-              firebaseAdmin
-                  .firestore
-                  .FieldValue
-                  .serverTimestamp(),
-
-              balancePaymentStatus:
-              "Balance Payment Expired",
-
-              balanceCancellationProcessed:
-              true,
-
-              balanceCancellationProcessedAt:
-              firebaseAdmin
-                  .firestore
-                  .FieldValue
-                  .serverTimestamp(),
-
-            });
-
+            if (!cancellationApplied) {
+              console.log(
+                  "Cancellation skipped; booking eligibility changed:",
+                  bookingId,
+              );
+              continue;
+            }
 
             console.log(
                 "Booking cancelled after balance grace period:",
@@ -1620,8 +1688,7 @@ exports.checkBalancePaymentDeadlines = onSchedule(
                 <p>
                   Unfortunately, your reservation
                   has been cancelled because the remaining
-                  balance was not received within the
-                  required grace period.
+                  balance was not received by the required balance-payment deadline.
                 </p>
 
                 <p>
@@ -1733,8 +1800,8 @@ exports.checkBalancePaymentDeadlines = onSchedule(
 
               <p>
                 The booking was automatically cancelled
-                after the 48-hour balance-payment grace
-                period expired.
+                because the remaining balance was not paid
+                by the applicable deadline before check-in.
               </p>
 
             `,
