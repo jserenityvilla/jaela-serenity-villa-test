@@ -1315,12 +1315,19 @@ exports.checkBalancePaymentDeadlines = onSchedule(
               gracePeriodHours * 60 * 60 * 1000,
           );
 
+          // Use a one-hour safety cutoff before the Colombo check-in
+          // date boundary. This ensures the hourly scheduler can act
+          // before check-in day and never cancels on/after check-in.
+          const lastCancellationTime = new Date(
+              checkinDate.getTime() - 60 * 60 * 1000,
+          );
+
           const cancellationTime =
             shortNoticeBooking ?
-              checkinDate :
+              lastCancellationTime :
               new Date(Math.min(
                   configuredCancellationTime.getTime(),
-                  checkinDate.getTime(),
+                  lastCancellationTime.getTime(),
               ));
 
           // Never run this cancellation workflow on or after check-in.
