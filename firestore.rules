@@ -40,8 +40,65 @@ service cloud.firestore {
             allow delete: if false;
         }
 
+        match /housekeepingRooms/{recordId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingLinenItems/{recordId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingPackRules/{recordId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingStaff/{recordId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingStaffRoles/{recordId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingAuditLogs/{recordId} {
+            allow read, create: if request.auth != null && request.auth.token.role == "admin";
+            allow update, delete: if false;
+        }
+        match /housekeepingGuestPacks/{bookingId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingStockBalances/{itemId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingStockMovements/{movementId} {
+            allow read, create: if request.auth != null && request.auth.token.role == "admin";
+            allow update, delete: if false;
+        }
+        match /housekeepingRoomPreparations/{bookingId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingPurchases/{purchaseId} {
+            allow read, create: if request.auth != null && request.auth.token.role == "admin";
+            allow update, delete: if false;
+        }
+        match /housekeepingLaundryDispatches/{dispatchId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
+        match /housekeepingLaundryReturns/{returnId} {
+            allow read, create: if request.auth != null && request.auth.token.role == "admin";
+            allow update, delete: if false;
+        }
+        match /housekeepingExpectedLaundryReturns/{returnId} {
+            allow read, create, update: if request.auth != null && request.auth.token.role == "admin";
+            allow delete: if false;
+        }
         match /{document=**} {
             allow read, write: if false;
         }
     }
 }
+

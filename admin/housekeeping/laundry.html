@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laundry Management | Ja-Ela Serenity Villa</title>
+<link rel="stylesheet" href="../../assets/css/style-new.css">
+<link rel="stylesheet" href="../../assets/css/admin.css">
+<style>
+.hk-container{max-width:1200px;margin:35px auto;padding:20px}
+.hk-panel{background:#fff;border:1px solid #ddd;border-radius:10px;padding:20px;margin:18px 0}
+.hk-status{padding:12px;background:#f2f6f6;margin:12px 0;overflow-wrap:anywhere}
+.hk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.hk-metric{border:1px solid #ddd;border-radius:8px;padding:14px}
+.hk-metric strong{display:block;font-size:24px;margin-top:8px}
+.hk-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.hk-form label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+.hk-form input,.hk-form select,.hk-form textarea{padding:10px;border:1px solid #ccc;border-radius:5px;width:100%}
+.hk-form textarea{min-height:60px}
+.hk-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.hk-btn{padding:10px 15px;border:0;border-radius:5px;cursor:pointer;background:#087e78;color:white}
+.hk-secondary{background:#e8eeee;color:#203030}
+.hk-table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left;white-space:nowrap}
+th{background:#087e78;color:white}
+[hidden]{display:none!important}
+@media(max-width:750px){.hk-grid{grid-template-columns:1fr}.hk-form{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-admin-login-path="../login.html" style="visibility:hidden">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+<main class="hk-container">
+<a href="index.html">← Back to Housekeeping</a>
+<h1>Laundry Management</h1>
+<p>Manage laundry dispatches, returns, outstanding quantities and damaged linen.</p>
+
+<div class="hk-status" id="laundryStatus" role="status">Connecting to local database...</div>
+
+<section class="hk-grid">
+<div class="hk-metric">Items currently in laundry<strong id="totalLaundry">0</strong></div>
+<div class="hk-metric">Open dispatches<strong id="openDispatches">0</strong></div>
+<div class="hk-metric">Outstanding quantity<strong id="outstandingTotal">0</strong></div>
+</section>
+
+<section class="hk-panel">
+<h2>Register Expected External Laundry Return</h2>
+<p>Use this for items already sent to a laundry provider outside this system. Expected quantities are tracked separately and are <strong>not</strong> added to available stock until physically received.</p>
+<form id="expectedReturnForm">
+<div class="hk-form">
+<label>Booking reference
+<input id="expectedBookingReference" maxlength="80" required placeholder="e.g. JSV-20261013-9122">
+</label>
+<label>Laundry provider
+<input id="expectedProvider" maxlength="120" required>
+</label>
+<label>Item
+<select id="expectedItem" required><option value="">Loading items...</option></select>
+</label>
+<label>Expected quantity
+<input id="expectedQuantity" type="number" min="1" step="1" required>
+</label>
+<label>Expected return date
+<input id="expectedDate" type="date" required>
+</label>
+<label>Notes
+<input id="expectedNote" maxlength="300" placeholder="Optional details">
+</label>
+</div>
+<div class="hk-actions"><button class="hk-btn" id="saveExpectedReturn" type="submit">Register Expected Return</button></div>
+</form>
+<div id="expectedReturnStatus" class="hk-status" role="status"></div>
+<h3>Expected Returns Awaiting Physical Receipt</h3>
+<div class="hk-table-wrap"><table><thead><tr><th>Booking</th><th>Item</th><th>Expected</th><th>Reserved</th><th>Received</th><th>Due</th><th>Provider</th><th>Action</th></tr></thead><tbody id="expectedReturnRows"><tr><td colspan="8">Loading...</td></tr></tbody></table></div>
+</section>
+
+<section class="hk-panel">
+<h2>Create Laundry Dispatch</h2>
+<form id="dispatchForm">
+<div class="hk-form">
+<label>Guest preparation pack
+<select id="dispatchGuestPack" required>
+<option value="">Select a guest pack</option>
+</select>
+</label>
+<label>Dispatch date
+<input id="dispatchDate" type="date" required>
+</label>
+<label>Laundry provider
+<input id="provider" maxlength="120" required>
+</label>
+<label style="grid-column:1/-1">Notes
+<textarea id="dispatchNote" maxlength="500" placeholder="Optional dispatch notes"></textarea>
+</label>
+</div>
+<h3>Items sent</h3>
+<div class="hk-table-wrap">
+<table>
+<thead><tr><th>Item</th><th>In Use</th><th>Quantity sent</th></tr></thead>
+<tbody id="dispatchLines"></tbody>
+</table>
+</div>
+<div class="hk-actions">
+<button class="hk-btn" id="saveDispatch" type="submit">Save Laundry Dispatch</button>
+</div>
+</form>
+</section>
+
+<section class="hk-panel">
+<h2>Record Laundry Return</h2>
+<label>Open dispatch
+<select id="returnDispatch"><option value="">Select an open dispatch</option></select>
+</label>
+<div id="returnPanel" hidden>
+<div class="hk-status" id="returnSummary"></div>
+<form id="returnForm">
+<div class="hk-table-wrap">
+<table>
+<thead><tr><th>Item</th><th>Outstanding</th><th>Clean returned</th><th>Damaged returned</th></tr></thead>
+<tbody id="returnLines"></tbody>
+</table>
+</div>
+<label>Return notes
+<textarea id="returnNote" maxlength="500" placeholder="Optional return notes"></textarea>
+</label>
+<div class="hk-actions">
+<button class="hk-btn" id="saveReturn" type="submit">Save Laundry Return</button>
+</div>
+</form>
+</div>
+</section>
+
+<section class="hk-panel">
+<h2>Laundry Dispatch History</h2>
+<div class="hk-table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Reference</th><th>Provider</th><th>Items</th><th>Sent</th><th>Outstanding</th><th>Status</th></tr></thead>
+<tbody id="dispatchHistory"><tr><td colspan="7">Loading...</td></tr></tbody>
+</table>
+</div>
+</section>
+
+<section class="hk-panel">
+<h2>Laundry Return History</h2>
+<div class="hk-table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Dispatch</th><th>Items</th><th>Clean</th><th>Damaged</th><th>Recorded By</th></tr></thead>
+<tbody id="returnHistory"><tr><td colspan="6">Loading...</td></tr></tbody>
+</table>
+</div>
+</section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-laundry.js"></script>
+</body>
+</html>

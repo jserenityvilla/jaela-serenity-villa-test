@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guest Pack Preparation | Ja-Ela Serenity Villa</title>
+    <link rel="stylesheet" href="../../assets/css/style-new.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="../../assets/css/responsive.css">
+    <style>
+        .prep-container{max-width:1200px;margin:35px auto;padding:0 22px}
+        .prep-card{background:#fff;border:1px solid #e2e6e9;border-radius:12px;padding:20px;margin:18px 0}
+        .prep-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+        .prep-muted{color:#667085}
+        .prep-status{padding:12px;border-radius:8px;background:#f2f5f7;margin:12px 0}
+        .prep-table{width:100%;border-collapse:collapse;margin-top:12px}
+        .prep-table th,.prep-table td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}
+        .bed-option{display:block;padding:12px;border:1px solid #e5e7eb;border-radius:8px;margin:8px 0}
+        .prep-button{padding:10px 16px;border:0;border-radius:7px;cursor:pointer;margin:5px}
+        .prep-primary{background:#245b48;color:white}
+        .prep-secondary{background:#e9eef0;color:#203030}
+        .prep-button:disabled{opacity:.5;cursor:not-allowed}
+        @media(max-width:600px){.prep-table{font-size:13px}.prep-container{padding:0 12px}}
+    </style>
+</head>
+<body data-admin-login-path="../login.html" style="visibility:hidden">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+<main class="prep-container">
+    <p><a href="index.html">← Housekeeping</a></p>
+    <h1>Guest Pack Preparation</h1>
+    <p class="prep-muted">Review upcoming confirmed bookings, select the beds required and calculate the individual linen, bath towel, hand towel and bath mat requirements.</p>
+
+    <section class="prep-card">
+        <h2>Upcoming confirmed bookings</h2>
+        <p class="prep-muted">Only bookings with Confirmed status and a check-in date today or later are displayed.</p>
+        <button class="prep-button prep-secondary" id="refreshBookings" type="button">Refresh bookings</button>
+        <div id="bookingStatus" class="prep-status" role="status">Loading bookings...</div>
+        <div id="bookingList"></div>
+    </section>
+
+    <section class="prep-card" id="editor" hidden>
+        <h2 id="guestHeading">Prepare guest pack</h2>
+        <div id="bookingDetails" class="prep-grid"></div>
+
+        <h3>Select beds required</h3>
+        <p class="prep-muted">All five beds are selected by default. Deselect beds the guest does not require.</p>
+        <div id="bedOptions"></div>
+
+        <h3>Calculated requirements</h3>
+        <div id="calculationStatus" class="prep-status"></div>
+        <table class="prep-table">
+            <thead><tr><th>Requirement</th><th>Quantity</th><th>Basis</th></tr></thead>
+            <tbody id="requirements"></tbody>
+        </table>
+
+        <div class="prep-status">
+            Saving this draft does not allocate or deduct stock.
+        </div>
+        <button class="prep-button prep-primary" id="saveDraft" type="button">Save preparation draft</button>
+        <button class="prep-button prep-secondary" id="closeEditor" type="button">Close</button>
+        <div id="saveStatus" class="prep-status" role="status"></div>
+    </section>
+
+    <section class="prep-card">
+        <h2>Saved preparation drafts</h2>
+        <div id="draftList" class="prep-muted">Loading drafts...</div>
+    </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-preparation.js"></script>
+</body>
+</html>

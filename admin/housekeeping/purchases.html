@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase & Receiving | Ja-Ela Serenity Villa</title>
+    <link rel="stylesheet" href="../../assets/css/style-new.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+
+    <style>
+        .hk-container { max-width:1200px; margin:35px auto; padding:20px; }
+        .hk-panel { background:white; border:1px solid #ddd; border-radius:10px; padding:20px; margin:18px 0; }
+        .hk-actions { display:flex; flex-wrap:wrap; gap:10px; margin:15px 0; }
+        .hk-btn { padding:10px 16px; border:0; border-radius:5px; cursor:pointer; background:#087e78; color:white; }
+        .hk-secondary { background:#e8eeee; color:#203030; }
+        .hk-status { padding:12px; background:#f2f6f6; margin:12px 0; overflow-wrap:anywhere; }
+        .hk-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .hk-form label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+        .hk-form input,.hk-form select,.hk-form textarea { padding:10px; border:1px solid #ccc; border-radius:5px; width:100%; box-sizing:border-box; }
+        .hk-table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; margin-top:12px; }
+        th,td { padding:10px; border-bottom:1px solid #ddd; text-align:left; }
+        th { background:#087e78; color:white; }
+        .line-input { min-width:100px; padding:8px; }
+        .total { font-size:22px; font-weight:700; margin-top:15px; }
+        .muted { color:#666; font-size:13px; }
+        @media(max-width:700px) {
+            .hk-form { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+
+<body data-admin-login-path="../login.html" style="visibility:hidden">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+
+<main class="hk-container">
+    <a href="index.html">← Back to Housekeeping</a>
+
+    <h1>Purchase & Receiving</h1>
+    <p>Record linen and towel purchases, attach receipts and update available stock.</p>
+
+    <div id="purchaseStatus" class="hk-status" role="status">
+        Connecting to local database...
+    </div>
+
+    <section class="hk-panel">
+        <h2>Receive New Stock</h2>
+
+        <form id="purchaseForm">
+            <div class="hk-form">
+                <label>Supplier name
+                    <input id="supplier" maxlength="150" required>
+                </label>
+
+                <label>Purchase date
+                    <input id="purchaseDate" type="date" required>
+                </label>
+
+                <label>Purchase currency
+                    <select id="currency" required>
+                        <option value="LKR">LKR — Sri Lankan Rupees</option>
+                        <option value="AUD">AUD — Australian Dollars</option>
+                        <option value="USD">USD — US Dollars</option>
+                    </select>
+                </label>
+
+                <label>Invoice / receipt number
+                    <input id="invoiceNumber" maxlength="100">
+                </label>
+
+                <label>Receipt attachment (PDF, JPG or PNG)
+                    <input id="receiptFile" type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                        required>
+                </label>
+            </div>
+
+            <p class="muted">
+                Maximum receipt size: 10 MB. Keep the original purchase receipt for audit purposes.
+            </p>
+
+            <h3>Purchased items</h3>
+
+            <div class="hk-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity received</th>
+                            <th>Unit cost</th>
+                            <th>Line total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchaseLines"></tbody>
+                </table>
+            </div>
+
+            <div class="hk-actions">
+                <button type="button" class="hk-btn hk-secondary" id="addLine">
+                    + Add Item
+                </button>
+            </div>
+
+            <div class="total">
+                Purchase total: <span id="purchaseTotal">0.00</span>
+                <span id="totalCurrency">LKR</span>
+            </div>
+
+            <div class="hk-actions">
+                <button type="submit" class="hk-btn" id="savePurchase">
+                    Save Purchase & Receive Stock
+                </button>
+                <button type="reset" class="hk-btn hk-secondary" id="resetPurchase">
+                    Clear Form
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="hk-panel">
+        <h2>Purchase History</h2>
+        <div class="hk-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Supplier</th>
+                        <th>Invoice</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Receipt</th>
+                    </tr>
+                </thead>
+                <tbody id="purchaseHistory">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-purchases.js"></script>
+</body>
+</html>

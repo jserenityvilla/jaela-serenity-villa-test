@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Management | Ja-Ela Serenity Villa</title>
+    <link rel="stylesheet" href="../../assets/css/style-new.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <style>
+        .hk-container { max-width:1200px; margin:35px auto; padding:20px; }
+        .hk-panel { background:white; border:1px solid #ddd; border-radius:10px; padding:20px; margin:18px 0; }
+        .hk-actions { display:flex; flex-wrap:wrap; gap:10px; margin:12px 0; }
+        .hk-btn { padding:10px 15px; border:0; border-radius:5px; cursor:pointer; background:#087e78; color:white; }
+        .hk-secondary { background:#e8eeee; color:#203030; }
+        .hk-status { padding:12px; background:#f2f6f6; margin:12px 0; overflow-wrap:anywhere; }
+        .hk-grid { display:grid; grid-template-columns:repeat(5,minmax(120px,1fr)); gap:12px; }
+        .hk-metric { border:1px solid #ddd; border-radius:8px; padding:14px; }
+        .hk-metric strong { display:block; font-size:24px; margin-top:8px; }
+        .hk-table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; margin-top:12px; }
+        th,td { padding:10px; border-bottom:1px solid #ddd; text-align:left; white-space:nowrap; }
+        th { background:#087e78; color:white; }
+        .hk-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .hk-form label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+        .hk-form input,.hk-form select,.hk-form textarea { padding:10px; border:1px solid #ccc; border-radius:5px; width:100%; }
+        .hk-form textarea { min-height:65px; }
+        @media(max-width:750px) {
+            .hk-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .hk-form { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body data-admin-login-path="../login.html" style="visibility:hidden">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+
+<main class="hk-container">
+    <a href="index.html">← Back to Housekeeping</a>
+    <h1>Stock Management</h1>
+    <p>Monitor available, allocated, in-use, laundry and damaged linen and towel stock.</p>
+
+    <section class="hk-panel">
+        <h2>Stock Overview</h2>
+        <div class="hk-grid">
+            <div class="hk-metric">Available<strong id="availableTotal">0</strong></div>
+            <div class="hk-metric">Allocated<strong id="allocatedTotal">0</strong></div>
+            <div class="hk-metric">In Use<strong id="inUseTotal">0</strong></div>
+            <div class="hk-metric">In Laundry<strong id="laundryTotal">0</strong></div>
+            <div class="hk-metric">Damaged<strong id="damagedTotal">0</strong></div>
+        </div>
+        <div class="hk-status" id="stockStatus" role="status">Connecting to local database...</div>
+        <div class="hk-actions">
+            <button class="hk-btn" id="initialiseStock" type="button">Initialise Opening Stock</button>
+            <button class="hk-btn hk-secondary" id="recordOpeningLaundry" type="button">Record Opening In Laundry</button>
+            <button class="hk-btn hk-secondary" id="refreshStock" type="button">Refresh</button>
+        </div>
+        <p>Opening stock must be entered using verified physical quantities. Configured quantities are reference values only. Initialisation never overwrites an existing stock balance.</p>
+    </section>
+
+    <section class="hk-panel" id="openingStockPanel" hidden>
+        <h2>Enter Verified Opening Stock</h2>
+        <p>Enter the actual physical quantity counted for each item. Use zero if none is physically available. Configured quantities are reference values only.</p>
+
+        <form id="openingStockForm">
+            <div class="hk-table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Size / Type</th>
+                            <th>Configured Reference</th>
+                            <th>Verified Physical Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="openingStockBody"></tbody>
+                </table>
+            </div>
+            <div class="hk-actions">
+                <button class="hk-btn" type="submit" id="saveOpeningStock">Save Opening Stock</button>
+                <button class="hk-btn hk-secondary" type="button" id="cancelOpeningStock">Cancel</button>
+            </div>
+        </form>
+    </section>
+    <section class="hk-panel" id="openingLaundryPanel" hidden>
+        <h2>Record Opening Stock Already at External Laundry</h2>
+        <p>Use this once when TEST stock tracking starts and items are already physically with an external laundry provider. This increases In Laundry only; it does not increase Available stock or create a booking reservation.</p>
+        <form id="openingLaundryForm">
+            <div class="hk-form">
+                <label>Stock item
+                    <select id="openingLaundryItem" required><option value="">Select item</option></select>
+                </label>
+                <label>Quantity already at laundry
+                    <input id="openingLaundryQuantity" type="number" min="1" step="1" required>
+                </label>
+                <label>External laundry provider
+                    <input id="openingLaundryProvider" type="text" maxlength="120" required>
+                </label>
+                <label>Expected return date
+                    <input id="openingLaundryExpectedDate" type="date" required>
+                </label>
+                <label style="grid-column:1/-1">Opening balance note
+                    <textarea id="openingLaundryNote" maxlength="500" required></textarea>
+                </label>
+            </div>
+            <div class="hk-actions">
+                <button class="hk-btn" id="saveOpeningLaundry" type="submit">Save Opening In Laundry Balance</button>
+                <button class="hk-btn hk-secondary" id="cancelOpeningLaundry" type="button">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="hk-panel">
+        <h2>Stock by Item</h2>
+        <div class="hk-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th><th>Size / Type</th><th>Available</th>
+                        <th>Allocated</th><th>In Use</th><th>In Laundry</th>
+                        <th>Damaged</th><th>Total</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="stockBody"><tr><td colspan="9">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="hk-panel" id="movementPanel" hidden>
+        <h2 id="movementTitle">Record Stock Movement</h2>
+        <form id="movementForm">
+            <div class="hk-form">
+                <label>Stock item
+                    <input id="movementItem" readonly>
+                </label>
+                <label>Quantity
+                    <input id="movementQuantity" type="number" min="1" step="1" required>
+                </label>
+                <label>From status
+                    <select id="movementFrom" required>
+                        <option value="available">Available</option>
+                        <option value="allocated">Allocated</option>
+                        <option value="inUse">In Use</option>
+                        <option value="inLaundry">In Laundry</option>
+                        <option value="damaged">Damaged</option>
+                    </select>
+                </label>
+                <label>To status
+                    <select id="movementTo" required>
+                        <option value="available">Available</option>
+                        <option value="allocated">Allocated</option>
+                        <option value="inUse">In Use</option>
+                        <option value="inLaundry">In Laundry</option>
+                        <option value="damaged">Damaged</option>
+                    </select>
+                </label>
+                <label style="grid-column:1/-1">Reason / Reference
+                    <textarea id="movementNote" required maxlength="500"
+                        placeholder="For example: Returned from laundry, Booking reference, Damaged item..."></textarea>
+                </label>
+            </div>
+            <div class="hk-actions">
+                <button class="hk-btn" type="submit" id="saveMovement">Save Movement</button>
+                <button class="hk-btn hk-secondary" type="button" id="cancelMovement">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="hk-panel">
+        <h2>Stock Movement History</h2>
+        <div class="hk-table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Date</th><th>Item</th><th>Quantity</th><th>From</th><th>To</th><th>Reason</th><th>Recorded By</th></tr>
+                </thead>
+                <tbody id="movementBody"><tr><td colspan="7">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-stock.js"></script>
+</body>
+</html>

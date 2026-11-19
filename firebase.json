@@ -33,7 +33,12 @@
       "firebase-debug.*.log",
       "tools/**",
       "Ja-Ela_Serenity_Villa_Automated_Regression_Runner/**",
-      "CNAME"
+      "CNAME",
+      "**/*.backup-*",
+      "**/*.before-*"
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }

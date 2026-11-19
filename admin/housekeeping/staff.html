@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Housekeeping Staff | Ja-Ela Serenity Villa</title>
+    <link rel="stylesheet" href="../../assets/css/style-new.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <style>
+        .staff-container { max-width:1100px; margin:35px auto; padding:20px; }
+        .staff-panel { background:white; border:1px solid #ddd; border-radius:10px; padding:20px; margin-bottom:20px; }
+        .staff-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .staff-form label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+        .staff-form input, .staff-form select, .staff-form textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; }
+        .staff-form textarea { min-height:70px; }
+        .staff-mobile-input { display:grid; grid-template-columns:minmax(145px, 0.9fr) minmax(150px, 1.1fr); gap:6px; }
+        .staff-mobile-input select, .staff-mobile-input input { min-width:0; width:100%; }
+        .staff-form label small { font-weight:400; color:#555; line-height:1.4; }
+        @media(max-width:650px) { .staff-mobile-input { grid-template-columns:1fr; } }
+        .staff-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; }
+        .staff-button { padding:10px 15px; border:0; border-radius:6px; cursor:pointer; background:#087e78; color:white; }
+        .staff-secondary { background:#e8eeee; color:#203030; }
+        .staff-status { margin:12px 0; padding:10px; background:#f2f6f6; }
+        .staff-table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; margin-top:15px; }
+        th,td { padding:10px; border-bottom:1px solid #ddd; text-align:left; }
+        th { background:#087e78; color:white; }
+        @media(max-width:650px) { .staff-form { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body data-admin-login-path="../login.html" style="visibility:hidden;">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+
+<main class="staff-container">
+    <h1>Housekeeping Staff</h1>
+    <p>Manage staff members who support room preparation and laundry operations.</p>
+    <p><a href="staff-roles.html">Manage Staff Roles</a></p>
+
+    <section class="staff-panel">
+        <h2>Staff Directory</h2>
+        <p>Add staff members, maintain their details and manage their active status.</p>
+        <div class="staff-actions">
+            <button type="button" class="staff-button" id="addStaff">Add Staff Member</button>
+        </div>
+        <div class="staff-status" id="staffStatus" role="status">Connecting to local database...</div>
+    </section>
+
+    <section class="staff-panel" id="staffEditor" hidden>
+        <h2 id="editorTitle">Add Staff Member</h2>
+        <form id="staffForm">
+            <div class="staff-form">
+                <label>Full name
+                    <input name="fullName" type="text" maxlength="100" required>
+                </label>
+                <label>Mobile number
+                    <div class="staff-mobile-input">
+                        <select name="countryCode" aria-label="Mobile country code" required>
+                            <option value="+94" selected>Sri Lanka (+94)</option>
+                            <option value="+61">Australia (+61)</option>
+                            <option value="+44">United Kingdom (+44)</option>
+                            <option value="+1">USA / Canada (+1)</option>
+                            <option value="+91">India (+91)</option>
+                            <option value="+971">UAE (+971)</option>
+                            <option value="legacy">Keep existing number format</option>
+                        </select>
+                        <input name="mobile" type="tel" maxlength="30"
+                            placeholder="e.g. 0771234567" autocomplete="tel-national" required>
+                    </div>
+                    <small>New numbers are saved in international format. Sri Lanka is the default.</small>
+                </label>
+                <label>Role
+                    <select name="role" required>
+                        <option value="">Loading roles...</option>
+                    </select>
+                </label>
+                <label>Notes
+                    <textarea name="notes" maxlength="1000"></textarea>
+                </label>
+            </div>
+            <div class="staff-actions">
+                <button class="staff-button" type="submit">Save Staff Member</button>
+                <button class="staff-button staff-secondary" type="button" id="cancelStaff">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="staff-panel">
+        <h2>Staff Records</h2>
+        <div class="staff-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Mobile</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <tr><td colspan="5">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <a href="index.html">← Back to Linen &amp; Laundry Management</a>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-staff.js"></script>
+</body>
+</html>
+

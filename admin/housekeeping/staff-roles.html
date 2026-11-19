@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Role Configuration | Ja-Ela Serenity Villa</title>
+    <link rel="stylesheet" href="../../assets/css/style-new.css">
+    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <style>
+        .roles-container { max-width:1000px; margin:35px auto; padding:20px; }
+        .roles-panel { background:white; border:1px solid #ddd; border-radius:10px; padding:20px; margin-bottom:20px; }
+        .roles-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .roles-form label { display:flex; flex-direction:column; gap:6px; font-weight:600; }
+        .roles-form input,.roles-form textarea { width:100%; padding:10px; border:1px solid #ccc; border-radius:5px; }
+        .roles-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:15px; }
+        .roles-button { padding:10px 15px; border:0; border-radius:6px; cursor:pointer; background:#087e78; color:white; }
+        .roles-secondary { background:#e8eeee; color:#203030; }
+        .roles-status { margin:12px 0; padding:10px; background:#f2f6f6; }
+        .roles-table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; margin-top:15px; }
+        th,td { padding:10px; border-bottom:1px solid #ddd; text-align:left; }
+        th { background:#087e78; color:white; }
+        @media(max-width:650px) { .roles-form { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body data-admin-login-path="../login.html" style="visibility:hidden;">
+<header><h1>Ja-Ela Serenity Villa</h1></header>
+<main class="roles-container">
+    <h1>Staff Role Configuration</h1>
+    <p>Maintain the roles available when creating or editing housekeeping staff records.</p>
+
+    <section class="roles-panel">
+        <div class="roles-actions">
+            <button type="button" class="roles-button" id="seedRoles">Load Initial Roles</button>
+            <button type="button" class="roles-button roles-secondary" id="addRole">Add Role</button>
+        </div>
+        <div class="roles-status" id="rolesStatus" role="status">Connecting to local database...</div>
+    </section>
+
+    <section class="roles-panel" id="roleEditor" hidden>
+        <h2 id="roleEditorTitle">Add Role</h2>
+        <form id="roleForm">
+            <div class="roles-form">
+                <label>Role name
+                    <input name="name" type="text" maxlength="60" required>
+                </label>
+                <label>Description
+                    <textarea name="description" maxlength="500"></textarea>
+                </label>
+            </div>
+            <div class="roles-actions">
+                <button class="roles-button" type="submit">Save Role</button>
+                <button class="roles-button roles-secondary" type="button" id="cancelRole">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="roles-panel">
+        <h2>Configured Roles</h2>
+        <div class="roles-table-wrap">
+            <table>
+                <thead><tr><th>Role</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="rolesTableBody"><tr><td colspan="4">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
+    <a href="staff.html">← Back to Housekeeping Staff</a>
+    <br><br>
+    <a href="index.html">← Back to Linen &amp; Laundry Management</a>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="../../firebase/firebase-config.js"></script>
+<script src="../../assets/js/admin-auth-guard.js"></script>
+<script src="../../assets/js/housekeeping-staff-roles.js"></script>
+</body>
+</html>
